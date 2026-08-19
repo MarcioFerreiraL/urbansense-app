@@ -2,6 +2,8 @@
 <resources>
 
     <style name="Theme.CameraAccess" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:colorBackground">#000000</item>
+        <!-- Matches the light Compose background so the pre-Compose system window doesn't flash
+             black before the (usually light) HomeScreen renders. -->
+        <item name="android:colorBackground">#F7FAF8</item>
     </style>
 </resources>

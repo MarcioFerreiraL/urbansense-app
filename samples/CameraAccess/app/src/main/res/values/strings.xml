@@ -3,6 +3,7 @@
 
     <!-- App -->
     <string name="app_name" description="Launcher label / app name">Camera Access</string>
+    <string name="app_logo_description" description="Content description for the app logo shown on the home screen">Camera Access logo</string>
 
     <!-- App chrome -->
     <string name="scaffold_error_icon_description" description="Content description for the error snackbar icon">Camera Access error</string>
