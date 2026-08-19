@@ -35,19 +35,10 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.capture.Aut
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.location.LocationManagerHelper
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.motion.MotionDetectionManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.CameraAccessScaffold
-<<<<<<< HEAD
-<<<<<<< HEAD
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.CameraAccessTheme
-=======
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.dashboard.DashboardViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.history.HistoryViewModel
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.map.MapViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.settings.SettingsViewModel
->>>>>>> bbd53f3 (feat: implement UrbanSense AI app architecture with enhanced capture, detection services, and new dashboard navigation.)
-=======
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.dashboard.DashboardViewModel
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.history.HistoryViewModel
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.settings.SettingsViewModel
->>>>>>> origin/marcio
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.launch
@@ -87,6 +78,7 @@ class MainActivity : ComponentActivity() {
   private lateinit var dashboardViewModel: DashboardViewModel
   private lateinit var historyViewModel: HistoryViewModel
   private lateinit var settingsViewModel: SettingsViewModel
+  private lateinit var mapViewModel: MapViewModel
 
   private val permissionCheckLauncher =
       registerForActivityResult(RequestMultiplePermissions()) { permissionsResult ->
@@ -197,27 +189,25 @@ class MainActivity : ComponentActivity() {
         audioFeedbackManager = audioFeedbackManager
     )
 
+    mapViewModel = MapViewModel(
+        application = application,
+        reportRepository = reportRepository,
+        settingsRepository = settingsRepository,
+        locationManagerHelper = locationManagerHelper
+    )
+
     setContent {
-<<<<<<< HEAD
-      CameraAccessTheme {
-        CameraAccessScaffold(
-            viewModel = viewModel,
-            onRequestWearablesPermission = ::requestWearablesPermission,
-            onRequestRecordAudioPermission = ::requestRecordAudioPermission,
-        )
-      }
-=======
       CameraAccessScaffold(
           wearablesViewModel = wearablesViewModel,
           dashboardViewModel = dashboardViewModel,
           historyViewModel = historyViewModel,
           settingsViewModel = settingsViewModel,
           cameraViewModel = cameraViewModel,
+          mapViewModel = mapViewModel,
           audioFeedbackManager = audioFeedbackManager,
           onRequestWearablesPermission = ::requestWearablesPermission,
           onRequestRecordAudioPermission = ::requestRecordAudioPermission,
       )
->>>>>>> bbd53f3 (feat: implement UrbanSense AI app architecture with enhanced capture, detection services, and new dashboard navigation.)
     }
   }
 

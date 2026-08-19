@@ -44,6 +44,10 @@ dependencyResolutionManagement {
         username = "" // not needed
         password = System.getenv("GITHUB_TOKEN") ?: localProperties.getProperty("github_token")
       }
+      // Only the Meta Wearables SDK lives here. Without this filter Gradle asks GitHub Packages for
+      // every dependency in the build, and the 401 it answers with for anything else aborts the
+      // whole resolution instead of falling through to Maven Central.
+      content { includeGroup("com.meta.wearable") }
     }
   }
 }

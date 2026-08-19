@@ -102,12 +102,12 @@ fun MockDeviceKitScreen(
             Spacer(modifier = Modifier.height(4.dp))
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = Color(0xFFDCFCE7)
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
               Text(
                   text = stringResource(R.string.devices_paired_count, uiState.pairedDevices.size),
                   style = MaterialTheme.typography.labelSmall,
-                  color = Color(0xFF065F46),
+                  color = MaterialTheme.colorScheme.onPrimaryContainer,
                   modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                   fontWeight = FontWeight.Bold
               )
@@ -126,14 +126,14 @@ fun MockDeviceKitScreen(
               modifier = Modifier.fillMaxWidth(),
               text = stringResource(R.string.disable_mock_device_kit),
               onClick = { viewModel.disable() },
-              containerColor = AppColor.Red,
+              containerColor = MaterialTheme.colorScheme.error,
           )
         } else {
           ActionButton(
               modifier = Modifier.fillMaxWidth(),
               text = stringResource(R.string.enable_mock_device_kit),
               onClick = { viewModel.enable() },
-              containerColor = AppColor.Green,
+              containerColor = MaterialTheme.colorScheme.primary,
           )
         }
 
@@ -162,7 +162,7 @@ private fun ActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    containerColor: Color = AppColor.DeepBlue,
+    containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = Color.White,
 ) {
   Button(
@@ -250,7 +250,7 @@ private fun MockDeviceCard(
             onClick = { viewModel.unpairDevice(deviceInfo) },
             colors =
                 ButtonDefaults.buttonColors(
-                    containerColor = AppColor.Red,
+                    containerColor = MaterialTheme.colorScheme.error,
                     contentColor = Color.White,
                 ),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -288,7 +288,7 @@ private fun MockDeviceCard(
                   onCheckedChange = { checked ->
                     if (checked) viewModel.powerOn(deviceInfo) else viewModel.powerOff(deviceInfo)
                   },
-                  colors = SwitchDefaults.colors(checkedTrackColor = AppColor.Green),
+                  
               )
             }
 
@@ -307,7 +307,7 @@ private fun MockDeviceCard(
                   onCheckedChange = { checked ->
                     if (checked) viewModel.don(deviceInfo) else viewModel.doff(deviceInfo)
                   },
-                  colors = SwitchDefaults.colors(checkedTrackColor = AppColor.Green),
+                  
               )
             }
 
@@ -326,7 +326,7 @@ private fun MockDeviceCard(
                   onCheckedChange = { checked ->
                     if (checked) viewModel.unfold(deviceInfo) else viewModel.fold(deviceInfo)
                   },
-                  colors = SwitchDefaults.colors(checkedTrackColor = AppColor.Green),
+                  
               )
             }
           }
@@ -371,7 +371,7 @@ private fun MockDeviceCard(
               Text(
                   text = stringResource(R.string.has_captured_image),
                   style = MaterialTheme.typography.bodySmall,
-                  color = AppColor.Green,
+                  color = MaterialTheme.colorScheme.primary,
               )
             }
             ActionButton(

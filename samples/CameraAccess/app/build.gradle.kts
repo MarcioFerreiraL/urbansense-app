@@ -12,6 +12,7 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.jetbrains.kotlin.android)
   alias(libs.plugins.compose.compiler)
+  alias(libs.plugins.secrets.gradle.plugin)
 }
 
 android {
@@ -60,6 +61,15 @@ android {
 
 kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }
 
+// Keeps the Google Maps API key out of version control. The real key goes in `local.properties`
+// (git-ignored) as `MAPS_API_KEY=...`; `secrets.defaults.properties` supplies an empty placeholder
+// so the project still builds for anyone who has not set one up yet — the map then renders blank
+// instead of failing the build. See samples/CameraAccess/README.md.
+secrets {
+  propertiesFileName = "local.properties"
+  defaultPropertiesFileName = "secrets.defaults.properties"
+}
+
 dependencies {
   implementation(libs.androidx.activity.compose)
   implementation(platform(libs.androidx.compose.bom))
@@ -68,7 +78,11 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.androidx.material.icons.extended)
   implementation(libs.androidx.material3)
+  implementation(libs.androidx.navigation.compose)
   implementation(libs.kotlinx.collections.immutable)
+  implementation(libs.maps.compose)
+  implementation(libs.play.services.maps)
+  implementation(libs.play.services.location)
   implementation(libs.mwdat.core)
   implementation(libs.mwdat.camera)
   implementation(libs.mwdat.mockdevice)

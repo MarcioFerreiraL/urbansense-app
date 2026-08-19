@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Background of the pre-Compose system window. Must track `background` in the Compose light
+        scheme (ui/theme/Theme.kt) or the app flashes the wrong colour between the splash and the
+        first frame. The values-night variant does the same for the dark scheme.
+    -->
+    <color name="window_background">#F6F8F4</color>
+</resources>

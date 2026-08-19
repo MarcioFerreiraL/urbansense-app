@@ -5,17 +5,12 @@
 
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.dashboard
 
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,31 +31,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DirectionsBike
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NightlightRound
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Sensors
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -69,531 +53,352 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.meta.wearable.dat.core.types.RegistrationState
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.db.LocalReport
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.motion.MotionActivityType
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.AppColor
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportThumbnail
-import java.io.File
-
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportCard
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.UsCard
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.UsSectionHeader
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.UsStatTile
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.theme.MinTouchTarget
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.theme.UrbanSenseTheme
 
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
     onNavigateToCamera: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val motionStatus by viewModel.motionStatus.collectAsState()
-    val captureState by viewModel.captureState.collectAsState()
-    val settings by viewModel.settings.collectAsState()
-    val latestReport by viewModel.latestReport.collectAsState()
-    val totalReports by viewModel.totalReportsCount.collectAsState()
-    val wearablesState by viewModel.wearablesViewModel.uiState.collectAsState()
-    val context = LocalContext.current
+  val motionStatus by viewModel.motionStatus.collectAsState()
+  val captureState by viewModel.captureState.collectAsState()
+  val settings by viewModel.settings.collectAsState()
+  val latestReport by viewModel.latestReport.collectAsState()
+  val totalReports by viewModel.totalReportsCount.collectAsState()
+  val wearablesState by viewModel.wearablesViewModel.uiState.collectAsState()
 
-    val scrollState = rememberScrollState()
+  val spacing = UrbanSenseTheme.spacing
+  val scrollState = rememberScrollState()
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // App Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "UrbanSense AI",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "Thin Client & Movimento Inteligente",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+  Column(
+      modifier =
+          modifier
+              .fillMaxSize()
+              .background(MaterialTheme.colorScheme.background)
+              .verticalScroll(scrollState)
+              .padding(spacing.lg),
+      verticalArrangement = Arrangement.spacedBy(spacing.lg),
+  ) {
+    UsSectionHeader(
+        title = stringResource(R.string.app_name),
+        subtitle = stringResource(R.string.app_tagline),
+        trailing = { ConnectionChip(isConnected = wearablesState.hasActiveDevice, onClick = onNavigateToCamera) },
+    )
 
-            // Connection Chip
-            val isConnected = wearablesState.hasActiveDevice
-            val chipBg = if (isConnected) Color(0xFF065F46) else Color(0xFF374151)
-            val chipText = if (isConnected) "Ray-Ban Conectado" else "Sem Óculos"
+    MotionCard(
+        activityType = motionStatus.activityType,
+        isMoving = motionStatus.isMoving,
+        isSleepMode = captureState.isSleepMode,
+        onSimulate = viewModel::simulateMotion,
+    )
 
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = chipBg,
-                modifier = Modifier.clickable { onNavigateToCamera() }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(if (isConnected) Color(0xFF34D399) else Color(0xFF9CA3AF))
-                    )
-                    Text(
-                        text = chipText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
+    AutoCaptureCard(
+        isActive = captureState.isAutoCaptureActive,
+        intervalSec = settings.autoCaptureIntervalSec,
+        countdownSec = captureState.countdownSec,
+        onToggle = viewModel::toggleAutoCapture,
+    )
 
-        // Motion & Power Efficiency Card (RF02)
-        val isMoving = motionStatus.isMoving
-        val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-        val pulseScale by infiniteTransition.animateFloat(
-            initialValue = 1f,
-            targetValue = if (isMoving) 1.08f else 1f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(800),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "scale"
-        )
+    ManualCaptureButton(
+        isCapturing = captureState.isCapturingNow,
+        onCapture = viewModel::triggerManualCapture,
+    )
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .scale(pulseScale)
-                                .clip(CircleShape)
-                                .background(
-                                    if (isMoving) AppColor.Emerald.copy(alpha = 0.2f)
-                                    else AppColor.Yellow.copy(alpha = 0.2f)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = when (motionStatus.activityType) {
-                                    MotionActivityType.WALKING -> Icons.Default.DirectionsWalk
-                                    MotionActivityType.RUNNING -> Icons.Default.DirectionsRun
-                                    MotionActivityType.ON_BICYCLE -> Icons.Default.DirectionsBike
-                                    MotionActivityType.IN_VEHICLE -> Icons.Default.Bolt
-                                    else -> Icons.Default.NightlightRound
-                                },
-                                contentDescription = "Motion Status",
-                                tint = if (isMoving) AppColor.Emerald else AppColor.Yellow,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "Detecção de Movimento",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = motionStatus.activityType.label,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isMoving) AppColor.Emerald else Color(0xFFF59E0B),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    // Sleep / Active Pill
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (captureState.isSleepMode) Color(0xFF1E293B) else Color(0xFF064E3B)
-                    ) {
-                        Text(
-                            text = if (captureState.isSleepMode) "Sleep Mode" else "Ativo",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (captureState.isSleepMode) Color(0xFF94A3B8) else Color(0xFFA7F3D0),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Energy details description
-                Text(
-                    text = if (captureState.isSleepMode) {
-                        "Modo de economia ativa: Câmera e GPS sob demanda em repouso."
-                    } else {
-                        "Usuário em movimento ativo: Captura periódica automática habilitada."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Simulation controls (for testing without walking outdoors)
-                Text(
-                    text = "Simular Estado de Movimento (Teste):",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    FilledTonalButton(
-                        onClick = { viewModel.simulateMotion(MotionActivityType.STILL) },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
-                    ) {
-                        Text("Parado", fontSize = 11.sp, maxLines = 1)
-                    }
-                    FilledTonalButton(
-                        onClick = { viewModel.simulateMotion(MotionActivityType.WALKING) },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
-                    ) {
-                        Text("Caminhando", fontSize = 11.sp, maxLines = 1)
-                    }
-                    FilledTonalButton(
-                        onClick = { viewModel.simulateMotion(MotionActivityType.RUNNING) },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 6.dp)
-                    ) {
-                        Text("Correndo", fontSize = 11.sp, maxLines = 1)
-                    }
-                }
-            }
-        }
-
-        // Auto-Capture & Interval Status Card (RF03)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Captura Automática Periódica",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Intervalo: ${settings.autoCaptureIntervalSec}s em movimento",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Switch(
-                        checked = captureState.isAutoCaptureActive,
-                        onCheckedChange = { viewModel.toggleAutoCapture() },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = AppColor.Emerald,
-                            checkedTrackColor = AppColor.Emerald.copy(alpha = 0.4f)
-                        )
-                    )
-                }
-
-                if (captureState.countdownSec > 0) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            progress = { captureState.countdownSec.toFloat() / settings.autoCaptureIntervalSec },
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = AppColor.Emerald
-                        )
-                        Text(
-                            text = "Próximo disparo automático em ${captureState.countdownSec}s",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = AppColor.Emerald,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-        }
-
-        // Large CTA Manual Capture Button (RF03)
-        val isCapturing = captureState.isCapturingNow
-        Button(
-            onClick = { viewModel.triggerManualCapture() },
-            enabled = !isCapturing,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = AppColor.Emerald,
-                contentColor = Color.White
-            )
-        ) {
-            if (isCapturing) {
-                CircularProgressIndicator(
-                    color = Color.White,
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 3.dp
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Obtendo GPS & Enviando...",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.CameraAlt,
-                    contentDescription = "Disparo Manual",
-                    modifier = Modifier.size(26.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Registrar Ocorrência Manual",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        // Latest Report Card (RF05 & RF06)
-        if (latestReport != null) {
-            Text(
-                text = "Último Registro Enviado",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            LatestReportItemCard(
-                report = latestReport!!,
-                onTestAudio = { viewModel.testAudioFeedback() },
-                onOpenMap = { lat, lng ->
-                    val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng(Ocorrência+UrbanSense)")
-                    val mapIntent = Intent(Intent.ACTION_VIEW, uri)
-                    context.startActivity(mapIntent)
-                }
-            )
-        }
-
-        // Session Stats
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "Total de Envios",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "$totalReports",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "Disparos na Sessão",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${captureState.totalCapturesInSession}",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-            }
-        }
+    latestReport?.let { report ->
+      Text(
+          text = stringResource(R.string.dashboard_latest_report),
+          style = MaterialTheme.typography.titleMedium,
+      )
+      ReportCard(
+          report = report,
+          modifier = Modifier.fillMaxWidth(),
+          onSpeak = { viewModel.testAudioFeedback() },
+      )
     }
+
+    Row(horizontalArrangement = Arrangement.spacedBy(spacing.md)) {
+      UsStatTile(
+          value = "$totalReports",
+          label = stringResource(R.string.dashboard_total_reports),
+          icon = Icons.Default.Send,
+          modifier = Modifier.weight(1f),
+      )
+      UsStatTile(
+          value = "${captureState.totalCapturesInSession}",
+          label = stringResource(R.string.dashboard_session_captures),
+          icon = Icons.Default.Timeline,
+          modifier = Modifier.weight(1f),
+      )
+    }
+  }
 }
 
 @Composable
-fun LatestReportItemCard(
-    report: LocalReport,
-    onTestAudio: () -> Unit,
-    onOpenMap: (Double, Double) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+private fun ConnectionChip(isConnected: Boolean, onClick: () -> Unit) {
+  // Connected reads as the brand green; disconnected stays neutral rather than red — not having the
+  // glasses on is a normal resting state, not an error.
+  val container =
+      if (isConnected) MaterialTheme.colorScheme.primaryContainer
+      else MaterialTheme.colorScheme.surfaceVariant
+  val content =
+      if (isConnected) MaterialTheme.colorScheme.onPrimaryContainer
+      else MaterialTheme.colorScheme.onSurfaceVariant
+
+  Surface(
+      shape = RoundedCornerShape(percent = 50),
+      color = container,
+      modifier = Modifier.clickable(onClick = onClick),
+  ) {
+    Row(
+        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                // Thumbnail or Placeholder
-                ReportThumbnail(
-                    localImagePath = report.localImagePath,
-                    remoteUrl = report.remoteThumbnailUrl,
-                    size = 80.dp,
-                    cornerRadius = 12.dp
-                )
-
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Details
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = when (report.status) {
-                                "QUEUED", "PROCESSED" -> Color(0xFF065F46)
-                                "FAILED" -> Color(0xFF7F1D1D)
-                                else -> Color(0xFF1E3A8A)
-                            }
-                        ) {
-                            Text(
-                                text = report.status,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Text(
-                            text = report.triggerType,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "GPS: %.5f, %.5f".format(report.latitude, report.longitude),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    Text(
-                        text = report.timestamp,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    if (!report.audioFeedback.isNullOrEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.VolumeUp,
-                                contentDescription = "Audio feedback",
-                                tint = AppColor.Emerald,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = report.audioFeedback,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AppColor.Emerald,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Action Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = { onOpenMap(report.latitude, report.longitude) },
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Ver no mapa",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Ver no Mapa", fontSize = 12.sp)
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                IconButton(
-                    onClick = onTestAudio,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.VolumeUp,
-                        contentDescription = "Ouvir feedback",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
+      Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(content))
+      Text(
+          text =
+              stringResource(
+                  if (isConnected) R.string.dashboard_glasses_connected
+                  else R.string.dashboard_glasses_disconnected
+              ),
+          style = MaterialTheme.typography.labelSmall,
+          color = content,
+      )
     }
+  }
+}
+
+@Composable
+private fun MotionCard(
+    activityType: MotionActivityType,
+    isMoving: Boolean,
+    isSleepMode: Boolean,
+    onSimulate: (MotionActivityType) -> Unit,
+) {
+  val spacing = UrbanSenseTheme.spacing
+  val semantic = UrbanSenseTheme.semantic
+
+  // The pulse is the only signal that motion detection is live; without it a stationary user cannot
+  // tell the difference between "asleep by design" and "crashed".
+  val transition = rememberInfiniteTransition(label = "pulse")
+  val pulseScale by
+      transition.animateFloat(
+          initialValue = 1f,
+          targetValue = if (isMoving) 1.08f else 1f,
+          animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+          label = "scale",
+      )
+
+  val accent = if (isMoving) MaterialTheme.colorScheme.primary else semantic.warning
+
+  UsCard(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+          modifier = Modifier.weight(1f),
+      ) {
+        Box(
+            modifier =
+                Modifier.size(38.dp)
+                    .scale(pulseScale)
+                    .clip(CircleShape)
+                    .background(accent.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center,
+        ) {
+          Icon(
+              imageVector =
+                  when (activityType) {
+                    MotionActivityType.WALKING -> Icons.Default.DirectionsWalk
+                    MotionActivityType.RUNNING -> Icons.Default.DirectionsRun
+                    MotionActivityType.ON_BICYCLE -> Icons.Default.DirectionsBike
+                    MotionActivityType.IN_VEHICLE -> Icons.Default.Bolt
+                    else -> Icons.Default.NightlightRound
+                  },
+              contentDescription = null,
+              tint = accent,
+              modifier = Modifier.size(20.dp),
+          )
+        }
+
+        Column {
+          Text(
+              text = stringResource(R.string.dashboard_motion_title),
+              style = MaterialTheme.typography.titleMedium,
+          )
+          Text(
+              text = stringResource(activityType.labelRes),
+              style = MaterialTheme.typography.bodyMedium,
+              color = accent,
+          )
+        }
+      }
+
+      Surface(
+          shape = RoundedCornerShape(percent = 50),
+          color =
+              if (isSleepMode) MaterialTheme.colorScheme.surfaceVariant
+              else MaterialTheme.colorScheme.primaryContainer,
+      ) {
+        Text(
+            text =
+                stringResource(
+                    if (isSleepMode) R.string.dashboard_sleep_mode else R.string.dashboard_active_mode
+                ),
+            style = MaterialTheme.typography.labelSmall,
+            color =
+                if (isSleepMode) MaterialTheme.colorScheme.onSurfaceVariant
+                else MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+        )
+      }
+    }
+
+    Spacer(Modifier.height(spacing.md))
+    Text(
+        text =
+            stringResource(
+                if (isSleepMode) R.string.dashboard_sleep_explainer
+                else R.string.dashboard_active_explainer
+            ),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
+    Spacer(Modifier.height(spacing.md))
+    Text(
+        text = stringResource(R.string.dashboard_simulate_label),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    Spacer(Modifier.height(spacing.xs))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+    ) {
+      listOf(
+              MotionActivityType.STILL,
+              MotionActivityType.WALKING,
+              MotionActivityType.RUNNING,
+          )
+          .forEach { type ->
+            FilledTonalButton(
+                onClick = { onSimulate(type) },
+                modifier = Modifier.weight(1f),
+                shape = MaterialTheme.shapes.small,
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+            ) {
+              Text(
+                  text = stringResource(type.labelRes),
+                  style = MaterialTheme.typography.labelSmall,
+                  maxLines = 1,
+                  textAlign = TextAlign.Center,
+              )
+            }
+          }
+    }
+  }
+}
+
+@Composable
+private fun AutoCaptureCard(
+    isActive: Boolean,
+    intervalSec: Int,
+    countdownSec: Int,
+    onToggle: () -> Unit,
+) {
+  val spacing = UrbanSenseTheme.spacing
+
+  UsCard(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Column(modifier = Modifier.weight(1f)) {
+        Text(
+            text = stringResource(R.string.dashboard_auto_capture_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = stringResource(R.string.dashboard_auto_capture_interval, intervalSec),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
+      Switch(checked = isActive, onCheckedChange = { onToggle() })
+    }
+
+    if (countdownSec > 0) {
+      Spacer(Modifier.height(spacing.sm))
+      Row(
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+      ) {
+        CircularProgressIndicator(
+            progress = { countdownSec.toFloat() / intervalSec.coerceAtLeast(1) },
+            modifier = Modifier.size(16.dp),
+            strokeWidth = 2.dp,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = stringResource(R.string.dashboard_next_capture, countdownSec),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+      }
+    }
+  }
+}
+
+@Composable
+private fun ManualCaptureButton(isCapturing: Boolean, onCapture: () -> Unit) {
+  Button(
+      onClick = onCapture,
+      enabled = !isCapturing,
+      modifier = Modifier.fillMaxWidth().height(MinTouchTarget + 16.dp),
+      shape = MaterialTheme.shapes.medium,
+      colors =
+          ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.primary,
+              contentColor = MaterialTheme.colorScheme.onPrimary,
+          ),
+  ) {
+    if (isCapturing) {
+      CircularProgressIndicator(
+          color = MaterialTheme.colorScheme.onPrimary,
+          modifier = Modifier.size(22.dp),
+          strokeWidth = 3.dp,
+      )
+    } else {
+      Icon(
+          imageVector = Icons.Default.CameraAlt,
+          contentDescription = null,
+          modifier = Modifier.size(24.dp),
+      )
+    }
+    Spacer(Modifier.width(UrbanSenseTheme.spacing.md))
+    Text(
+        text =
+            stringResource(
+                if (isCapturing) R.string.dashboard_capturing else R.string.dashboard_manual_capture
+            ),
+        style = MaterialTheme.typography.titleMedium,
+    )
+  }
 }

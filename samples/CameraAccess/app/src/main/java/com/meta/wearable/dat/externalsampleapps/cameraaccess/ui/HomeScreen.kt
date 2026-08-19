@@ -76,25 +76,27 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-      androidx.compose.foundation.Image(
-          painter = painterResource(id = R.drawable.ic_urbansense_logo),
-          contentDescription = stringResource(R.string.camera_access_icon_description),
-          modifier = Modifier.size(140.dp).clip(androidx.compose.foundation.shape.CircleShape),
-      )
       Column(
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(20.dp),
       ) {
+        // Two competing "add the logo" commits both landed, leaving the screen rendering a 140dp
+        // circular logo stacked directly above a 96dp rounded one. One mark is enough.
         Image(
             painter = painterResource(id = R.drawable.logo_urbansense),
             contentDescription = stringResource(R.string.app_logo_description),
-            modifier = Modifier.size(96.dp).clip(RoundedCornerShape(20.dp)),
+            modifier = Modifier.size(120.dp).clip(RoundedCornerShape(24.dp)),
         )
         Text(
             text = stringResource(R.string.app_name),
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = stringResource(R.string.app_tagline),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
         Card(

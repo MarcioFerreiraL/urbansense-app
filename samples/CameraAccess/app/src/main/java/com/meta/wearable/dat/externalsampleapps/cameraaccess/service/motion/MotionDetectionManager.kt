@@ -11,6 +11,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.util.Log
+import androidx.annotation.StringRes
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,13 +23,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 
-enum class MotionActivityType(val label: String, val isMovement: Boolean) {
-    STILL("Parado (Sleep Mode)", false),
-    WALKING("Caminhando", true),
-    RUNNING("Correndo", true),
-    ON_BICYCLE("Pedalando", true),
-    IN_VEHICLE("Em Deslocamento", true),
-    UNKNOWN("Aguardando Movimento", false)
+/**
+ * Display labels live in `strings.xml` rather than in the enum: baking Portuguese into a service
+ * layer made the state untranslatable and forced the UI to depend on this module just to render a
+ * word.
+ */
+enum class MotionActivityType(@StringRes val labelRes: Int, val isMovement: Boolean) {
+    STILL(R.string.motion_still, false),
+    WALKING(R.string.motion_walking, true),
+    RUNNING(R.string.motion_running, true),
+    ON_BICYCLE(R.string.motion_bicycle, true),
+    IN_VEHICLE(R.string.motion_vehicle, true),
+    UNKNOWN(R.string.motion_unknown, false)
 }
 
 data class MotionStatus(

@@ -2,18 +2,102 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2" project="cameraaccess">
 
     <!-- App -->
-<<<<<<< HEAD
-<<<<<<< HEAD
-    <string name="app_name" description="Launcher label / app name">Camera Access</string>
-    <string name="app_logo_description" description="Content description for the app logo shown on the home screen">Camera Access logo</string>
-=======
     <string name="app_name" description="Launcher label / app name">UrbanSense AI</string>
-    <string name="app_tagline">Monitoramento Urbano Inteligente</string>
->>>>>>> bbd53f3 (feat: implement UrbanSense AI app architecture with enhanced capture, detection services, and new dashboard navigation.)
-=======
-    <string name="app_name" description="Launcher label / app name">UrbanSense AI</string>
-    <string name="app_tagline">Monitoramento Urbano Inteligente</string>
->>>>>>> origin/marcio
+    <string name="app_tagline" description="Short brand tagline shown under the logo">Monitoramento Urbano Inteligente</string>
+    <string name="app_logo_description" description="Content description for the app logo shown on the home screen">Logo do UrbanSense AI</string>
+
+    <!-- Report status (shared by Dashboard, History and Map) -->
+    <string name="report_status_pending" description="Short chip label: report queued on device, not yet sent">Pendente</string>
+    <string name="report_status_sent" description="Short chip label: report accepted by the server">Enviado</string>
+    <string name="report_status_failed" description="Short chip label: upload failed">Falha</string>
+    <string name="report_status_local" description="Short chip label: saved on the phone only, no network">Salvo local</string>
+    <string name="report_status_unknown" description="Short chip label: unrecognised status">Desconhecido</string>
+    <string name="report_status_pending_long" description="Descriptive status shown in the detail dialog">Pendente de envio</string>
+    <string name="report_status_sent_long" description="Descriptive status shown in the detail dialog">Enviado com sucesso</string>
+    <string name="report_status_failed_long" description="Descriptive status shown in the detail dialog">Falha no envio</string>
+    <string name="report_status_local_long" description="Descriptive status shown in the detail dialog">Salvo no aparelho, aguardando rede</string>
+    <string name="report_trigger_manual" description="Badge: capture triggered by the user">Manual</string>
+    <string name="report_trigger_automatic" description="Badge: capture triggered automatically by motion detection">Automático</string>
+    <string name="report_gps_format" description="Latitude and longitude readout on an occurrence card">%1$.5f, %2$.5f</string>
+    <string name="report_gps_label" description="Accessibility label preceding a coordinate pair">Coordenadas</string>
+
+    <!-- Motion states -->
+    <string name="motion_still" description="Motion state: user is not moving, capture is asleep">Parado (modo repouso)</string>
+    <string name="motion_walking" description="Motion state: user is walking">Caminhando</string>
+    <string name="motion_running" description="Motion state: user is running">Correndo</string>
+    <string name="motion_bicycle" description="Motion state: user is cycling">Pedalando</string>
+    <string name="motion_vehicle" description="Motion state: user is in a vehicle">Em deslocamento</string>
+    <string name="motion_unknown" description="Motion state: not yet determined">Aguardando movimento</string>
+
+    <!-- Map screen -->
+    <string name="map_title" description="Title of the occurrences map screen">Mapa de Irregularidades</string>
+    <string name="map_nav_label" description="Bottom navigation label for the map (must stay short)">Mapa</string>
+    <string name="map_occurrence_count" description="Count of plotted occurrences shown above the grid">%1$d ocorrência(s) registrada(s)</string>
+    <string name="map_empty_title" description="Empty state title on the map screen">Nenhuma ocorrência ainda</string>
+    <string name="map_empty_subtitle" description="Empty state subtitle on the map screen">Registros com localização aparecem aqui assim que a primeira captura for feita.</string>
+    <string name="map_empty_action" description="Empty state call to action on the map screen">Registrar ocorrência</string>
+    <string name="map_no_api_key_title" description="Shown when the Google Maps API key is missing">Mapa indisponível</string>
+    <string name="map_no_api_key_subtitle" description="Explains how to enable the map">Configure MAPS_API_KEY em local.properties para exibir o mapa. A lista de ocorrências abaixo continua funcionando.</string>
+    <string name="map_recenter" description="Content description for the button that frames all occurrences">Enquadrar todas as ocorrências</string>
+    <string name="map_my_location" description="Content description for the button that centres on the user">Minha localização</string>
+    <string name="map_marker_description" description="Content description for an occurrence pin">Ocorrência em %1$s</string>
+    <string name="map_sheet_handle" description="Content description for the draggable sheet handle">Arraste para expandir a lista</string>
+
+    <!-- Navigation labels (kept short so five items fit the bottom bar) -->
+    <string name="nav_dashboard" description="Bottom navigation label for the dashboard">Painel</string>
+    <string name="nav_camera" description="Bottom navigation label for the glasses camera">Óculos</string>
+    <string name="nav_history" description="Bottom navigation label for the history list">Histórico</string>
+    <string name="nav_settings" description="Bottom navigation label for settings">Ajustes</string>
+
+    <!-- Occurrence cards -->
+    <string name="thumbnail_unavailable" description="Content description when a report photo cannot be loaded">Imagem indisponível</string>
+    <string name="thumbnail_loading" description="Content description while a report photo is loading">Carregando imagem</string>
+    <string name="report_card_open_detail" description="Content description for tapping an occurrence card">Abrir detalhes da ocorrência</string>
+    <string name="report_open_external_map" description="Button that opens the occurrence in the device map app">Abrir no mapa</string>
+    <string name="report_no_map_app" description="Shown when the device has no app able to open a geo: link">Nenhum app de mapas instalado.</string>
+    <string name="report_retry" description="Button that retries a failed upload">Reenviar</string>
+    <string name="report_speak" description="Content description for replaying the audio feedback of a report">Ouvir retorno em áudio</string>
+    <string name="report_detection_label" description="Row label for what the detection service found">Irregularidade encontrada</string>
+    <string name="report_destination_label" description="Row label for where the report was sent">Enviado para</string>
+    <string name="report_accuracy_format" description="GPS accuracy readout in metres">Precisão %1$.0f m</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_glasses_connected" description="Chip shown when the Ray-Ban glasses are connected">Ray-Ban conectado</string>
+    <string name="dashboard_glasses_disconnected" description="Chip shown when no glasses are connected">Sem óculos</string>
+    <string name="dashboard_motion_title" description="Title of the motion detection card">Detecção de movimento</string>
+    <string name="dashboard_sleep_mode" description="Pill shown while capture is suspended">Repouso</string>
+    <string name="dashboard_active_mode" description="Pill shown while capture is running">Ativo</string>
+    <string name="dashboard_sleep_explainer" description="Explains what happens in sleep mode">Economia de bateria ativa: câmera e GPS ficam suspensos enquanto você está parado.</string>
+    <string name="dashboard_active_explainer" description="Explains what happens while moving">Deslocamento detectado: captura periódica automática habilitada.</string>
+    <string name="dashboard_simulate_label" description="Label above the motion simulation buttons, used for bench testing">Simular movimento (teste)</string>
+    <string name="dashboard_auto_capture_title" description="Title of the automatic capture card">Captura automática</string>
+    <string name="dashboard_auto_capture_interval" description="Interval between automatic captures while moving">A cada %1$ds em movimento</string>
+    <string name="dashboard_next_capture" description="Countdown until the next automatic capture">Próximo disparo em %1$ds</string>
+    <string name="dashboard_manual_capture" description="Main call to action: capture an occurrence now">Registrar ocorrência</string>
+    <string name="dashboard_capturing" description="Button label while a capture is in flight">Obtendo GPS e enviando…</string>
+    <string name="dashboard_latest_report" description="Heading above the most recent occurrence">Último registro</string>
+    <string name="dashboard_total_reports" description="Stat tile caption: reports sent in total">Total de envios</string>
+    <string name="dashboard_session_captures" description="Stat tile caption: captures in the current session">Disparos na sessão</string>
+
+    <!-- History -->
+    <string name="history_title" description="Title of the history screen">Histórico de envios</string>
+    <string name="history_sync" description="Content description for the button that syncs with the API">Sincronizar com o servidor</string>
+    <string name="history_clear" description="Title and content description for clearing local history">Limpar histórico</string>
+    <string name="history_clear_confirm" description="Confirmation body before deleting all local records">Apagar todos os registros salvos neste aparelho? Os que já foram enviados permanecem no servidor.</string>
+    <string name="history_clear_action" description="Destructive confirm button in the clear-history dialog">Apagar</string>
+    <string name="history_empty_title" description="Empty state title on the history screen">Nenhuma ocorrência ainda</string>
+    <string name="history_empty_subtitle" description="Empty state subtitle on the history screen">Faça uma captura manual ou ative a detecção de movimento para registrar eventos.</string>
+    <string name="history_detail_title" description="Title of the occurrence detail dialog">Detalhes da ocorrência</string>
+    <string name="history_detail_accuracy" description="Detail row label for GPS accuracy">Precisão</string>
+    <string name="history_detail_timestamp" description="Detail row label for the capture time">Data e hora</string>
+    <string name="history_detail_trigger" description="Detail row label for how the capture was triggered">Acionamento</string>
+    <string name="history_detail_error" description="Detail row label for the error returned by the server">Erro</string>
+    <string name="report_map_pin_label" description="Label of the pin dropped in the external map app">Ocorrência UrbanSense</string>
+
+    <!-- Settings -->
+    <string name="settings_token_label" description="Label for the JWT bearer token field">Token JWT de autenticação</string>
+    <string name="settings_token_show" description="Content description for revealing the masked token">Mostrar token</string>
+    <string name="settings_token_hide" description="Content description for masking the token again">Ocultar token</string>
 
     <!-- App chrome -->
     <string name="scaffold_error_icon_description" description="Content description for the error snackbar icon">Erro do UrbanSense</string>

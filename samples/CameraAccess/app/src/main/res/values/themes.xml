@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!--
+        Only the pre-Compose system window uses this; Compose paints everything else. The platform
+        has no `Theme.Material.*.DayNight.NoActionBar`, so light/dark is handled by the
+        @color/window_background resource instead, which has a values-night override.
+    -->
     <style name="Theme.CameraAccess" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- Matches the light Compose background so the pre-Compose system window doesn't flash
-             black before the (usually light) HomeScreen renders. -->
-        <item name="android:colorBackground">#F7FAF8</item>
+        <item name="android:colorBackground">@color/window_background</item>
+        <item name="android:windowBackground">@color/window_background</item>
     </style>
 </resources>

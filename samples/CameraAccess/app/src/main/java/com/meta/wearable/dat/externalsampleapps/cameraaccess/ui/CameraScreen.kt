@@ -72,6 +72,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.theme.ViewfinderColor
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -392,7 +393,9 @@ private fun TopBar(
 
 @Composable
 private fun StatusChip(label: String, value: String, active: Boolean, present: Boolean) {
-  val dotColor = if (active) AppColor.Green else if (present) AppColor.Yellow else Color.Gray
+  val dotColor =
+      if (active) ViewfinderColor.ActiveDot
+      else if (present) ViewfinderColor.PendingDot else ViewfinderColor.InactiveDot
   Row(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -596,7 +599,7 @@ private fun RecordPill(
     modifier: Modifier = Modifier,
 ) {
   val background =
-      if (isRecording) AppColor.RecordAccent.copy(alpha = 0.5f)
+      if (isRecording) ViewfinderColor.RecordAccent.copy(alpha = 0.5f)
       else Color.White.copy(alpha = if (enabled) 0.18f else 0.08f)
   Row(
       modifier =
@@ -630,7 +633,7 @@ private fun RecordPill(
       Icon(
           imageVector = Icons.Filled.Videocam,
           contentDescription = stringResource(R.string.record_video),
-          tint = if (enabled) AppColor.RecordAccent else Color.White.copy(alpha = 0.45f),
+          tint = if (enabled) ViewfinderColor.RecordAccent else Color.White.copy(alpha = 0.45f),
           modifier = Modifier.size(20.dp),
       )
       Spacer(modifier = Modifier.width(8.dp))
@@ -678,7 +681,7 @@ private fun UpdateRequiredMessage(modifier: Modifier = Modifier) {
           modifier
               .fillMaxWidth()
               .clip(RoundedCornerShape(20.dp))
-              .background(AppColor.UpdateRequiredBackground)
+              .background(ViewfinderColor.WarningContainer)
               .padding(16.dp),
       horizontalArrangement = Arrangement.spacedBy(12.dp),
       verticalAlignment = Alignment.Top,
@@ -686,19 +689,19 @@ private fun UpdateRequiredMessage(modifier: Modifier = Modifier) {
     Icon(
         imageVector = Icons.Filled.Warning,
         contentDescription = null,
-        tint = AppColor.UpdateRequiredForeground,
+        tint = ViewfinderColor.OnWarningContainer,
         modifier = Modifier.size(24.dp),
     )
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
       Text(
           text = stringResource(R.string.update_required_title),
-          color = AppColor.UpdateRequiredForeground,
+          color = ViewfinderColor.OnWarningContainer,
           fontWeight = FontWeight.SemiBold,
           fontSize = 16.sp,
       )
       Text(
           text = stringResource(R.string.update_required_firmware_message),
-          color = AppColor.UpdateRequiredForeground,
+          color = ViewfinderColor.OnWarningContainer,
           fontSize = 15.sp,
       )
     }

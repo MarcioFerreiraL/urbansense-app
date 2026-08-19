@@ -28,7 +28,9 @@ fun CircleButton(
   Button(
       modifier = modifier.aspectRatio(1f),
       onClick = onClick,
-      colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+      colors = ButtonDefaults.buttonColors(// Sits on top of the dark camera viewfinder, so this stays a fixed light surface
+            // rather than following the theme.
+            containerColor = Color.White),
       shape = CircleShape,
       contentPadding = PaddingValues(0.dp),
       content = content,

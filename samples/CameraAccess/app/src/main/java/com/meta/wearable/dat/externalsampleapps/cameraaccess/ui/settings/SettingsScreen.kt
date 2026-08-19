@@ -34,6 +34,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -47,9 +50,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
 import androidx.compose.ui.unit.sp
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.AppColor
 
 @Composable
 fun SettingsScreen(
@@ -62,6 +68,7 @@ fun SettingsScreen(
 
     var apiUrlInput by remember(settings.apiUrl) { mutableStateOf(settings.apiUrl) }
     var tokenInput by remember(settings.authToken) { mutableStateOf(settings.authToken) }
+    var isTokenVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -120,8 +127,27 @@ fun SettingsScreen(
                         tokenInput = it
                         viewModel.updateAuthToken(it)
                     },
-                    label = { Text("Token JWT de Autenticação (Bearer)") },
+                    label = { Text(stringResource(R.string.settings_token_label)) },
                     singleLine = true,
+                    // A bearer token is a credential; it was previously printed in clear text on a
+                    // screen the user may well be holding in public.
+                    visualTransformation =
+                        if (isTokenVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { isTokenVisible = !isTokenVisible }) {
+                            Icon(
+                                imageVector =
+                                    if (isTokenVisible) Icons.Default.VisibilityOff
+                                    else Icons.Default.Visibility,
+                                contentDescription =
+                                    stringResource(
+                                        if (isTokenVisible) R.string.settings_token_hide
+                                        else R.string.settings_token_show
+                                    )
+                            )
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -171,8 +197,7 @@ fun SettingsScreen(
 
                     Switch(
                         checked = settings.isMotionDetectionEnabled,
-                        onCheckedChange = { viewModel.toggleMotionDetection(it) },
-                        colors = SwitchDefaults.colors(checkedThumbColor = AppColor.Emerald)
+                        onCheckedChange = { viewModel.toggleMotionDetection(it) }
                     )
                 }
 
@@ -206,8 +231,8 @@ fun SettingsScreen(
                             onClick = { viewModel.updateAutoInterval(sec) },
                             modifier = Modifier.weight(1f),
                             colors = if (isSelected) ButtonDefaults.filledTonalButtonColors(
-                                containerColor = AppColor.Emerald,
-                                contentColor = androidx.compose.ui.graphics.Color.White
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             ) else ButtonDefaults.filledTonalButtonColors()
                         ) {
                             Text("${sec}s", fontSize = 12.sp)
@@ -261,8 +286,7 @@ fun SettingsScreen(
 
                     Switch(
                         checked = settings.isAudioVoiceFeedbackEnabled,
-                        onCheckedChange = { viewModel.toggleAudioVoiceFeedback(it) },
-                        colors = SwitchDefaults.colors(checkedThumbColor = AppColor.Emerald)
+                        onCheckedChange = { viewModel.toggleAudioVoiceFeedback(it) }
                     )
                 }
 
