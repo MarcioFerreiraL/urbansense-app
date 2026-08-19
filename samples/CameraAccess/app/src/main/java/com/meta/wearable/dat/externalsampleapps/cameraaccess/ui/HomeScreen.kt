@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -75,7 +76,11 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-      Spacer(modifier = Modifier.weight(1f))
+      androidx.compose.foundation.Image(
+          painter = painterResource(id = R.drawable.ic_urbansense_logo),
+          contentDescription = stringResource(R.string.camera_access_icon_description),
+          modifier = Modifier.size(140.dp).clip(androidx.compose.foundation.shape.CircleShape),
+      )
       Column(
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(20.dp),
