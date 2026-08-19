@@ -36,12 +36,18 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.location.Lo
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.motion.MotionDetectionManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.CameraAccessScaffold
 <<<<<<< HEAD
+<<<<<<< HEAD
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.CameraAccessTheme
 =======
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.dashboard.DashboardViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.history.HistoryViewModel
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.settings.SettingsViewModel
 >>>>>>> bbd53f3 (feat: implement UrbanSense AI app architecture with enhanced capture, detection services, and new dashboard navigation.)
+=======
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.dashboard.DashboardViewModel
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.history.HistoryViewModel
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.settings.SettingsViewModel
+>>>>>>> origin/marcio
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.wearables.WearablesViewModel
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.launch

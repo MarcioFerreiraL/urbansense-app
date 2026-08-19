@@ -6,12 +6,16 @@
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.ui
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 =======
 import androidx.compose.material3.MaterialTheme
 >>>>>>> bbd53f3 (feat: implement UrbanSense AI app architecture with enhanced capture, detection services, and new dashboard navigation.)
+=======
+import androidx.compose.material3.MaterialTheme
+>>>>>>> origin/marcio
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -21,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 // (the full-bleed camera viewfinder in particular) intentionally use a fixed dark chrome
 // regardless of the system light/dark theme, and reach for these tokens directly.
 object AppColor {
+<<<<<<< HEAD
 <<<<<<< HEAD
   // Core brand greens, sampled from the logo.
   val Primary = Color(0xFF2F8F5C)
@@ -119,6 +124,8 @@ fun CameraAccessTheme(content: @Composable () -> Unit) {
   val colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors
   MaterialTheme(colorScheme = colorScheme, content = content)
 =======
+=======
+>>>>>>> origin/marcio
   val Green = Color(0xFF10B981)
   val Emerald = Color(0xFF059669)
   val EmeraldGlow = Color(0xFF34D399)
@@ -165,5 +172,8 @@ fun UrbanSenseTheme(
         colorScheme = CleanWhiteColorScheme,
         content = content
     )
+<<<<<<< HEAD
 >>>>>>> bbd53f3 (feat: implement UrbanSense AI app architecture with enhanced capture, detection services, and new dashboard navigation.)
+=======
+>>>>>>> origin/marcio
 }
