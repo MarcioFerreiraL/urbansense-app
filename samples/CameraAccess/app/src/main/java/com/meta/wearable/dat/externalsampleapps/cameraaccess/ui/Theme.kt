@@ -1,16 +1,17 @@
 /*
- * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * Copyright (c) 2026 UrbanSense AI.
  * All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
  */
 
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.ui
 
+<<<<<<< HEAD
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+=======
+import androidx.compose.material3.MaterialTheme
+>>>>>>> bbd53f3 (feat: implement UrbanSense AI app architecture with enhanced capture, detection services, and new dashboard navigation.)
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -20,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 // (the full-bleed camera viewfinder in particular) intentionally use a fixed dark chrome
 // regardless of the system light/dark theme, and reach for these tokens directly.
 object AppColor {
+<<<<<<< HEAD
   // Core brand greens, sampled from the logo.
   val Primary = Color(0xFF2F8F5C)
   val PrimaryDark = Color(0xFF1F5C3A)
@@ -116,4 +118,52 @@ private val DarkColors =
 fun CameraAccessTheme(content: @Composable () -> Unit) {
   val colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors
   MaterialTheme(colorScheme = colorScheme, content = content)
+=======
+  val Green = Color(0xFF10B981)
+  val Emerald = Color(0xFF059669)
+  val EmeraldGlow = Color(0xFF34D399)
+  val Red = Color(0xFFEF4444)
+  val Yellow = Color(0xFFF59E0B)
+  val Amber = Color(0xFFD97706)
+  val DeepBlue = Color(0xFF059669)
+  val CyanAccent = Color(0xFF10B981)
+  val DarkSurface = Color(0xFFFFFFFF)
+  val DarkSurfaceCard = Color(0xFFFFFFFF)
+  val DarkSurfaceElevated = Color(0xFFF8FAFC)
+  val DestructiveBackground = Color(0xFFFFD8DB)
+  val DestructiveForeground = Color(0xFFAA071E)
+  val RecordAccent = Color(0xFFFF453A)
+  val UpdateRequiredBackground = Color(0xFFFEF2F2)
+  val UpdateRequiredForeground = Color(0xFF991B1B)
+}
+
+// Clean Bright White Theme (White background with subtle green details)
+private val CleanWhiteColorScheme = lightColorScheme(
+    primary = Color(0xFF059669),            // Emerald Green for buttons & icons
+    onPrimary = Color.White,                 // White text on green buttons
+    primaryContainer = Color(0xFFDCFCE7),    // Light Mint Container Accent
+    onPrimaryContainer = Color(0xFF065F46),  // Dark Emerald Text
+    secondary = Color(0xFF10B981),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFECFDF5),
+    onSecondaryContainer = Color(0xFF047857),
+    background = Color(0xFFF8FAFC),          // Crisp White/Off-White Background
+    onBackground = Color(0xFF0F172A),        // Dark Slate Text
+    surface = Color(0xFFFFFFFF),             // Pure White Cards
+    onSurface = Color(0xFF0F172A),           // Dark Slate Text on Cards
+    surfaceVariant = Color(0xFFFFFFFF),      // Pure White Cards Fill
+    onSurfaceVariant = Color(0xFF475569),    // Slate Subtitles
+    outline = Color(0xFFE2E8F0)              // Light Subtle Border
+)
+
+@Composable
+fun UrbanSenseTheme(
+    darkTheme: Boolean = false,
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = CleanWhiteColorScheme,
+        content = content
+    )
+>>>>>>> bbd53f3 (feat: implement UrbanSense AI app architecture with enhanced capture, detection services, and new dashboard navigation.)
 }

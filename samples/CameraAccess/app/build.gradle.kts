@@ -76,3 +76,5 @@ dependencies {
   androidTestImplementation(libs.androidx.test.uiautomator)
   androidTestImplementation(libs.androidx.test.rules)
 }
+
+

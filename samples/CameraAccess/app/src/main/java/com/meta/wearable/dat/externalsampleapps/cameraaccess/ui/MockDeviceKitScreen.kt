@@ -44,8 +44,11 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -88,23 +91,27 @@ fun MockDeviceKitScreen(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
       Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
           Text(
               text = stringResource(R.string.mock_device_kit_title),
-              style = MaterialTheme.typography.headlineSmall,
+              style = MaterialTheme.typography.titleLarge,
               fontWeight = FontWeight.Bold,
+              color = MaterialTheme.colorScheme.onSurface
           )
           if (uiState.isEnabled) {
-            Text(
-                text = stringResource(R.string.devices_paired_count, uiState.pairedDevices.size),
-                style = MaterialTheme.typography.bodyMedium,
-                color = AppColor.Green,
-                textAlign = TextAlign.Center,
-            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color(0xFFDCFCE7)
+            ) {
+              Text(
+                  text = stringResource(R.string.devices_paired_count, uiState.pairedDevices.size),
+                  style = MaterialTheme.typography.labelSmall,
+                  color = Color(0xFF065F46),
+                  modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                  fontWeight = FontWeight.Bold
+              )
+            }
           }
         }
         Text(

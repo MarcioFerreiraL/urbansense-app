@@ -35,7 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -75,7 +75,12 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-      Spacer(modifier = Modifier.weight(1f))
+      Icon(
+          painter = painterResource(id = R.drawable.camera_access_icon),
+          contentDescription = stringResource(R.string.camera_access_icon_description),
+          tint = AppColor.DeepBlue,
+          modifier = Modifier.size(80.dp * LocalDensity.current.density),
+      )
       Column(
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(20.dp),
