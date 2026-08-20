@@ -50,6 +50,7 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.db.LocalReport
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.GpsText
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportCard
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.FullscreenPhotoViewerDialog
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportThumbnail
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.UsEmptyState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.UsSecondaryButton
@@ -75,6 +76,7 @@ fun HistoryScreen(
   val spacing = UrbanSenseTheme.spacing
 
   var showClearDialog by remember { mutableStateOf(false) }
+  var fullScreenReport by remember { mutableStateOf<LocalReport?>(null) }
 
   Column(
       modifier =
@@ -148,6 +150,7 @@ fun HistoryScreen(
               report = report,
               modifier = Modifier.fillMaxWidth(),
               onClick = { viewModel.selectReport(report) },
+              onImageClick = { fullScreenReport = report },
               onRetry = { viewModel.retryReport(report.id) },
               onSpeak = { report.audioFeedback?.let(onSpeak) },
           )
@@ -170,6 +173,7 @@ fun HistoryScreen(
           )
         },
         onRetry = { viewModel.retryReport(report.id) },
+        onImageClick = { fullScreenReport = it },
     )
   }
 
@@ -198,6 +202,15 @@ fun HistoryScreen(
         },
     )
   }
+
+  fullScreenReport?.let { report ->
+      FullscreenPhotoViewerDialog(
+          localImagePath = report.localImagePath,
+          remoteUrl = report.remoteThumbnailUrl,
+          title = "Foto da Ocorrência #${report.id.take(8)}",
+          onDismissRequest = { fullScreenReport = null }
+      )
+  }
 }
 
 @Composable
@@ -207,6 +220,7 @@ private fun ReportDetailDialog(
     onDismiss: () -> Unit,
     onOpenMap: () -> Unit,
     onRetry: () -> Unit,
+    onImageClick: (LocalReport) -> Unit = {},
 ) {
   val spacing = UrbanSenseTheme.spacing
   val status = reportStatusStyle(report.status)
@@ -225,6 +239,7 @@ private fun ReportDetailDialog(
               remoteUrl = report.remoteThumbnailUrl,
               modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f),
               shape = MaterialTheme.shapes.medium,
+              onClick = { onImageClick(report) },
           )
 
           UsStatusChip(

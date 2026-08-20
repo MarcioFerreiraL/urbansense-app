@@ -65,6 +65,7 @@ fun ReportCard(
     destination: String? = null,
     selected: Boolean = false,
     onClick: (() -> Unit)? = null,
+    onImageClick: (() -> Unit)? = null,
     onRetry: (() -> Unit)? = null,
     onSpeak: (() -> Unit)? = null,
 ) {
@@ -96,6 +97,7 @@ fun ReportCard(
             localImagePath = report.localImagePath,
             remoteUrl = report.remoteThumbnailUrl,
             modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f),
+            onClick = onImageClick ?: onClick,
         )
         Spacer(Modifier.height(UrbanSenseTheme.spacing.sm))
         GpsText(latitude = report.latitude, longitude = report.longitude)
@@ -115,6 +117,7 @@ fun ReportCard(
               localImagePath = report.localImagePath,
               remoteUrl = report.remoteThumbnailUrl,
               modifier = Modifier.size(76.dp),
+              onClick = onImageClick ?: onClick,
           )
           Column(modifier = Modifier.weight(1f)) {
             Row(
