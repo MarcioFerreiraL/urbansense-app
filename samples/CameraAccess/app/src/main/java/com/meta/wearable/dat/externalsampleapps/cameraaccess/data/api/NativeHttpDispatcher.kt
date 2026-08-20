@@ -64,7 +64,7 @@ object NativeHttpDispatcher {
         val boundary = "===UrbanSenseBoundary${System.currentTimeMillis()}==="
         // /report runs detection AND e-mails the city hall server-side (urbansense-api) — the
         // Mailtrap token lives only there, never in this app. See urbansense-api/app/main.py.
-        val targetUrl = resolveTargetUrl(baseUrl, "/report")
+        val targetUrl = resolveTargetUrl(baseUrl, "/predict")
         val imageSizeKb = (imageFile.length() / 1024).toInt()
 
         AppLogger.net(
@@ -262,21 +262,45 @@ object NativeHttpDispatcher {
                 val reportId = "pred_" + UUID.randomUUID().toString().take(8)
                 val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(java.util.Date())
 
+                val detectionsList = mutableListOf<DetectionBox>()
+                val detectionsArray = json.optJSONArray("detections")
+                if (detectionsArray != null) {
+                    for (i in 0 until detectionsArray.length()) {
+                        val item = detectionsArray.optJSONObject(i)
+                        if (item != null) {
+                            val label = item.optString("label", item.optString("class_name", "lixo"))
+                            val conf = item.optDouble("confidence", 0.0).toFloat()
+                            val boxArray = item.optJSONArray("box")
+                            val boxFloats = mutableListOf<Float>()
+                            if (boxArray != null) {
+                                for (j in 0 until boxArray.length()) {
+                                    boxFloats.add(boxArray.optDouble(j, 0.0).toFloat())
+                                }
+                            }
+                            if (boxFloats.size >= 4) {
+                                detectionsList.add(DetectionBox(label = label, confidence = conf, box = boxFloats))
+                            }
+                        }
+                    }
+                }
+
                 val reportData = ReportData(
                     reportId = reportId,
                     createdAt = timestamp,
                     status = "PROCESSED",
                     thumbnailUrl = null,
                     audioFeedback = dynamicAudioFeedback,
-                    detectionResult = detectionLabel
+                    detectionResult = detectionLabel,
+                    detections = detectionsList
                 )
 
                 return ReportSubmissionResponse(
                     status = "success",
-                    message = "Incerence completed",
+                    message = "Inference completed",
                     code = "200",
                     audioFeedback = dynamicAudioFeedback,
                     detectionResult = detectionLabel,
+                    detections = detectionsList,
                     data = reportData
                 )
             }

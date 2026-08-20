@@ -10,13 +10,20 @@ import com.google.gson.annotations.SerializedName
 /**
  * Data response for POST /reports (201 Created)
  */
+data class DetectionBox(
+    @SerializedName("label") val label: String,
+    @SerializedName("confidence") val confidence: Float,
+    @SerializedName("box") val box: List<Float> = emptyList()
+)
+
 data class ReportSubmissionResponse(
     @SerializedName("status") val status: String,
     @SerializedName("message") val message: String? = null,
     @SerializedName("data") val data: ReportData? = null,
     @SerializedName("code") val code: String? = null,
     @SerializedName("audio_feedback") val audioFeedback: String? = null,
-    @SerializedName("detection_result") val detectionResult: String? = null
+    @SerializedName("detection_result") val detectionResult: String? = null,
+    @SerializedName("detections") val detections: List<DetectionBox> = emptyList()
 )
 
 data class ReportData(
@@ -25,7 +32,8 @@ data class ReportData(
     @SerializedName("status") val status: String,
     @SerializedName("thumbnail_url") val thumbnailUrl: String? = null,
     @SerializedName("audio_feedback") val audioFeedback: String? = null,
-    @SerializedName("detection_result") val detectionResult: String? = null
+    @SerializedName("detection_result") val detectionResult: String? = null,
+    @SerializedName("detections") val detections: List<DetectionBox> = emptyList()
 )
 
 /**

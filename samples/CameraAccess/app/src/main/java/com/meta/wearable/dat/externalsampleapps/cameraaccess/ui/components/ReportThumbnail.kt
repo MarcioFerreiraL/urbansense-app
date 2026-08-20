@@ -9,12 +9,16 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -26,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -41,9 +46,6 @@ import kotlin.math.max
 
 /**
  * The photo tile on an occurrence card.
- *
- * Sizing is entirely the caller's: pass `Modifier.size(72.dp)` for a list row, or
- * `Modifier.fillMaxWidth().aspectRatio(4f / 3f)` for the map's grid card.
  */
 @Composable
 fun ReportThumbnail(
@@ -51,14 +53,11 @@ fun ReportThumbnail(
     remoteUrl: String?,
     modifier: Modifier = Modifier,
     shape: Shape = MaterialTheme.shapes.small,
+    onClick: (() -> Unit)? = null,
 ) {
   var bitmap by remember(localImagePath, remoteUrl) { mutableStateOf<Bitmap?>(null) }
   var hasError by remember(localImagePath, remoteUrl) { mutableStateOf(false) }
 
-  // A capture is up to 5 MB of JPEG; decoded at full resolution that is tens of megabytes of ARGB
-  // in memory, for a tile a couple of hundred pixels wide. Decoding at a sample size scaled to the
-  // widest tile we draw keeps a long history list from thrashing the heap on the low-end phones
-  // RNF05 targets.
   val targetPx = with(LocalDensity.current) { 320.dp.roundToPx() }
 
   LaunchedEffect(localImagePath, remoteUrl, targetPx) {
@@ -76,25 +75,46 @@ fun ReportThumbnail(
               .getOrNull()
 
       bitmap = decoded
-      // Previously an unreadable file left the tile stuck on the "waiting" camera icon forever,
-      // which reads as "still uploading" rather than "this image is gone".
       hasError = decoded == null
     }
   }
 
+  val boxModifier = if (onClick != null && bitmap != null) {
+    modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onClick() }
+  } else {
+    modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceVariant)
+  }
+
   Box(
-      modifier = modifier.clip(shape).background(MaterialTheme.colorScheme.surfaceVariant),
+      modifier = boxModifier,
       contentAlignment = Alignment.Center,
   ) {
     val current = bitmap
     when {
-      current != null ->
+      current != null -> {
           Image(
               bitmap = current.asImageBitmap(),
               contentDescription = stringResource(R.string.captured_photo),
               modifier = Modifier.fillMaxSize(),
               contentScale = ContentScale.Crop,
           )
+          if (onClick != null) {
+              Box(
+                  modifier = Modifier
+                      .align(Alignment.BottomEnd)
+                      .padding(4.dp)
+                      .background(Color(0xAA000000), CircleShape)
+                      .padding(4.dp)
+              ) {
+                  Icon(
+                      imageVector = Icons.Default.ZoomIn,
+                      contentDescription = "Ver foto inteira",
+                      tint = Color.White,
+                      modifier = Modifier.size(14.dp)
+                  )
+              }
+          }
+      }
       hasError ->
           Icon(
               imageVector = Icons.Default.BrokenImage,

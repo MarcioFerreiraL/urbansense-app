@@ -59,6 +59,8 @@ import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.ReportStatus
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.db.LocalReport
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportCard
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.FullscreenPhotoViewerDialog
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportCard
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportCardVariant
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.UsEmptyState
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.theme.Brand
@@ -115,6 +117,7 @@ fun MapScreen(
       animateFloatAsState(targetValue = if (mapExpanded) 0.48f else 0.22f, label = "mapWeight")
 
   var mapViewRef by remember { mutableStateOf<MapView?>(null) }
+  var fullScreenReport by remember { mutableStateOf<LocalReport?>(null) }
 
   LaunchedEffect(reports.isEmpty()) {
     if (reports.isEmpty()) viewModel.resolveFallbackCentre()
@@ -265,6 +268,7 @@ fun MapScreen(
                   destination = uiState.destinationHost,
                   selected = report.id == uiState.selectedReportId,
                   onClick = { viewModel.select(report.id) },
+                  onImageClick = { fullScreenReport = report },
               )
             }
           }
@@ -300,8 +304,10 @@ private fun OsmMap(
           setMultiTouchControls(true)
           zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
           minZoomLevel = 3.0
-          controller.setZoom(CITY_ZOOM)
-          controller.setCenter(DEFAULT_CENTRE)
+          val initialCenter = reports.firstOrNull()?.let { GeoPoint(it.latitude, it.longitude) } ?: DEFAULT_CENTRE
+          val initialZoom = if (reports.isNotEmpty()) 15.0 else CITY_ZOOM
+          controller.setZoom(initialZoom)
+          controller.setCenter(initialCenter)
 
           // A tap that lands on the map itself (not a marker) clears the selection.
           overlays.add(

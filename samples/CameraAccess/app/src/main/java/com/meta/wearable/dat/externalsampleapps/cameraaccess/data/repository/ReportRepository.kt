@@ -113,6 +113,17 @@ class ReportRepository(
                 // original PENDING row forever. The server's report_id is only meaningful to
                 // urbansense-api's own logs — this app has no use for it.
                 val audioFeedback = response.audioFeedback ?: "Registro enviado com sucesso."
+                val remoteUrl = response.data?.thumbnailUrl
+                val detections = response.detections.ifEmpty { response.data?.detections ?: emptyList() }
+
+                if (detections.isNotEmpty() && imageFile.exists()) {
+                    com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.util.ImageAnnotationUtils.annotateAndSaveImage(imageFile, detections)
+                }
+
+                com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
+                    "UrbanSense:Repository",
+                    "✅ Ocorrência $tempId confirmada pela API. Detecções: ${detections.size} objeto(s)"
+                )
                 val detectionResult = response.detectionResult ?: response.data?.detectionResult
                 AppLogger.i(TAG, "✅ Ocorrência $tempId notificada. Detecção: $detectionResult")
 
