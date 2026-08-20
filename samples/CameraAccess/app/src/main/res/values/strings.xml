@@ -36,8 +36,6 @@
     <string name="map_empty_title" description="Empty state title on the map screen">Nenhuma ocorrência ainda</string>
     <string name="map_empty_subtitle" description="Empty state subtitle on the map screen">Registros com localização aparecem aqui assim que a primeira captura for feita.</string>
     <string name="map_empty_action" description="Empty state call to action on the map screen">Registrar ocorrência</string>
-    <string name="map_no_api_key_title" description="Shown when the Google Maps API key is missing">Mapa indisponível</string>
-    <string name="map_no_api_key_subtitle" description="Explains how to enable the map">Configure MAPS_API_KEY em local.properties para exibir o mapa. A lista de ocorrências abaixo continua funcionando.</string>
     <string name="map_recenter" description="Content description for the button that frames all occurrences">Enquadrar todas as ocorrências</string>
     <string name="map_my_location" description="Content description for the button that centres on the user">Minha localização</string>
     <string name="map_marker_description" description="Content description for an occurrence pin">Ocorrência em %1$s</string>

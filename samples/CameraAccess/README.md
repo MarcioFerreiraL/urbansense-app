@@ -28,30 +28,13 @@ A sample Android application demonstrating integration with Meta Wearables Devic
 1. Clone this repository
 1. Open the project in Android Studio
 1. Add your personal access token (classic) to the `local.properties` file (see [SDK for Android setup](https://wearables.developer.meta.com/docs/develop/dat/build-integration-android#step-2-add-the-sdk-to-gradle))
-1. Add a Google Maps API key (see [Google Maps API key](#google-maps-api-key) below) — optional, the app builds without one
 1. Click **File** > **Sync Project with Gradle Files**
 1. Click **Run** > **Run...** > **app**
 
-### Google Maps API key
+### Map tiles
 
-The "Mapa" tab plots every occurrence with a valid GPS fix. It needs a Google Maps key, which is
-injected at build time by the [secrets-gradle-plugin](https://github.com/google/secrets-gradle-plugin)
-and **must never be committed**.
-
-1. In the [Google Cloud Console](https://console.cloud.google.com/), create (or pick) a project and
-   enable **Maps SDK for Android**.
-1. Create an API key and restrict it to Android apps, with:
-   - package name `com.meta.wearable.dat.externalsampleapps.cameraaccess`
-   - the SHA-1 of your signing certificate (`./gradlew signingReport`)
-1. Add it to `local.properties`, which is git-ignored:
-
-   ```properties
-   MAPS_API_KEY=AIza...
-   ```
-
-Without a key, `secrets.defaults.properties` supplies the sentinel `MISSING_MAPS_API_KEY`. The build
-still succeeds and the map area shows an explanatory panel instead of a blank grey square; the
-occurrence list underneath keeps working.
+The "Mapa" tab plots every occurrence with a valid GPS fix on OpenStreetMap tiles ([osmdroid](https://github.com/osmdroid/osmdroid)) — no
+API key, no Google Cloud billing account, and no usage-based charges. It works out of the box.
 
 ## Running the app
 

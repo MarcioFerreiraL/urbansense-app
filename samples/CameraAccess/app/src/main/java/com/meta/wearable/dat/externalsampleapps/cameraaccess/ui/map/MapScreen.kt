@@ -5,10 +5,14 @@
 
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.map
 
-import android.content.pm.PackageManager
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +33,6 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
@@ -37,60 +40,51 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MapStyleOptions
-import com.google.maps.android.compose.GoogleMap
-import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
-import com.google.maps.android.compose.rememberCameraPositionState
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.BuildConfig
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.R
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.ReportStatus
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.db.LocalReport
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportCard
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.ReportCardVariant
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.components.UsEmptyState
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.theme.Brand
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.theme.UrbanSenseTheme
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.util.formatTimestampShort
-
-/** Mirrors the placeholder in `secrets.defaults.properties`. */
-private const val MISSING_KEY_SENTINEL = "MISSING_MAPS_API_KEY"
+import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.BoundingBox
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.CustomZoomButtonsController
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.MapEventsOverlay
 
 /** Default camera when the app has no reports and no fix yet — Recife, matching the GPS fallback. */
-private val DEFAULT_CENTRE = LatLng(-8.047562, -34.877014)
-private const val SINGLE_REPORT_ZOOM = 16f
-private const val CITY_ZOOM = 12f
-
-/**
- * Hues for `BitmapDescriptorFactory.defaultMarker`, chosen to track the brand palette while keeping
- * Google's own pin silhouette (which users already read as "tap me"). 132° is the hue of the logo's
- * deep green; amber and red diverge so a pending or failed report is distinguishable at a glance
- * without zooming in.
- */
-private const val HUE_SENT = 132f
-private const val HUE_QUEUED = 110f
-private const val HUE_PENDING = 40f
-private const val HUE_FAILED = 0f
+private val DEFAULT_CENTRE = GeoPoint(-8.047562, -34.877014)
+private const val SINGLE_REPORT_ZOOM = 17.0
+private const val CITY_ZOOM = 13.0
 
 /**
  * The occurrences map: every report with a valid fix as a pin, and the same reports as a two-up grid
  * of cards beneath.
+ *
+ * Runs on OpenStreetMap tiles (osmdroid) rather than Google Maps: no API key, no Google Cloud billing
+ * account, and no usage-based charge risk — this screen only needs to plot pins on a street map, not
+ * the rest of the Google Maps platform.
  *
  * Selection is bidirectional on purpose — tapping a pin scrolls its card into view and highlights
  * it; tapping a card flies the camera to its pin. Coordinates alone are not something a person can
@@ -105,40 +99,22 @@ fun MapScreen(
   val reports by viewModel.reports.collectAsStateWithLifecycle()
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val context = LocalContext.current
-  val darkTheme = isSystemInDarkTheme()
 
-  // The key is injected at build time from local.properties. When a contributor has not set one up,
-  // secrets.defaults.properties supplies MISSING_KEY_SENTINEL and the Maps SDK would render an empty
-  // grey square with no explanation — so detect it and say what to do instead.
-  val hasApiKey =
-      remember {
-        runCatching {
-              val info =
-                  context.packageManager.getApplicationInfo(
-                      context.packageName,
-                      PackageManager.GET_META_DATA,
-                  )
-              val key = info.metaData?.getString("com.google.android.geo.API_KEY")
-              !key.isNullOrBlank() && key != MISSING_KEY_SENTINEL
-            }
-            .getOrDefault(false)
-      }
-
-  val cameraPositionState = rememberCameraPositionState {
-    position = CameraPosition.fromLatLngZoom(DEFAULT_CENTRE, CITY_ZOOM)
+  // osmdroid's tile cache and the User-Agent it sends to the OSM tile servers both need setting up
+  // once, before the first MapView is created. The OSM usage policy requires a real User-Agent —
+  // sending the default one gets an app's requests blocked.
+  LaunchedEffect(Unit) {
+    val prefs = context.getSharedPreferences("osmdroid", 0)
+    Configuration.getInstance().load(context, prefs)
+    Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
   }
+
   val gridState = rememberLazyGridState()
   var mapExpanded by remember { mutableStateOf(true) }
   val mapWeight by
       animateFloatAsState(targetValue = if (mapExpanded) 0.48f else 0.22f, label = "mapWeight")
 
-  val mapStyle =
-      remember(darkTheme) {
-        MapStyleOptions.loadRawResourceStyle(
-            context,
-            if (darkTheme) R.raw.map_style_dark else R.raw.map_style,
-        )
-      }
+  var mapViewRef by remember { mutableStateOf<MapView?>(null) }
 
   LaunchedEffect(reports.isEmpty()) {
     if (reports.isEmpty()) viewModel.resolveFallbackCentre()
@@ -146,38 +122,28 @@ fun MapScreen(
 
   // Frame everything as soon as the set of plotted points changes, so a new capture never lands
   // off-screen.
-  LaunchedEffect(reports.map { it.id }) {
+  LaunchedEffect(reports.map { it.id }, mapViewRef) {
+    val map = mapViewRef ?: return@LaunchedEffect
     when {
       reports.size >= 2 -> {
-        val bounds =
-            LatLngBounds.builder()
-                .apply { reports.forEach { include(LatLng(it.latitude, it.longitude)) } }
-                .build()
-        runCatching {
-          cameraPositionState.animate(CameraUpdateFactory.newLatLngBounds(bounds, 96), 600)
-        }
+        val box =
+            BoundingBox.fromGeoPoints(reports.map { GeoPoint(it.latitude, it.longitude) })
+                .increaseByScale(1.3f)
+        map.zoomToBoundingBox(box, true, 96)
       }
       reports.size == 1 -> {
         val only = reports.first()
-        cameraPositionState.animate(
-            CameraUpdateFactory.newLatLngZoom(
-                LatLng(only.latitude, only.longitude),
-                SINGLE_REPORT_ZOOM,
-            ),
-            600,
-        )
+        map.controller.animateTo(GeoPoint(only.latitude, only.longitude), SINGLE_REPORT_ZOOM, 600L)
       }
     }
   }
 
-  LaunchedEffect(uiState.fallbackLatitude, uiState.fallbackLongitude) {
+  LaunchedEffect(uiState.fallbackLatitude, uiState.fallbackLongitude, mapViewRef) {
+    val map = mapViewRef ?: return@LaunchedEffect
     val lat = uiState.fallbackLatitude
     val lng = uiState.fallbackLongitude
     if (reports.isEmpty() && lat != null && lng != null) {
-      cameraPositionState.animate(
-          CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), CITY_ZOOM),
-          600,
-      )
+      map.controller.animateTo(GeoPoint(lat, lng), CITY_ZOOM, 600L)
     }
   }
 
@@ -190,45 +156,30 @@ fun MapScreen(
     }
   }
 
+  // Card tapped -> fly the camera to its pin.
+  LaunchedEffect(uiState.selectedReportId, mapViewRef) {
+    val map = mapViewRef ?: return@LaunchedEffect
+    reports.firstOrNull { it.id == uiState.selectedReportId }?.let {
+      map.controller.animateTo(GeoPoint(it.latitude, it.longitude), SINGLE_REPORT_ZOOM, 500L)
+    }
+  }
+
   Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
     Box(modifier = Modifier.fillMaxWidth().weight(mapWeight)) {
-      if (hasApiKey) {
-        GoogleMap(
-            modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
-            properties = MapProperties(mapStyleOptions = mapStyle),
-            uiSettings =
-                MapUiSettings(zoomControlsEnabled = false, mapToolbarEnabled = false),
-            onMapClick = { viewModel.select(null) },
-        ) {
-          reports.forEach { report ->
-            val position = LatLng(report.latitude, report.longitude)
-            Marker(
-                // Held across recompositions; a fresh MarkerState on every frame would reset the
-                // marker's own state (selection, info window) as the list re-emits.
-                state = remember(report.id, position) { MarkerState(position = position) },
-                title = formatTimestampShort(report.timestamp),
-                snippet = report.detectionResult,
-                icon = BitmapDescriptorFactory.defaultMarker(hueFor(report.status)),
-                zIndex = if (report.id == uiState.selectedReportId) 1f else 0f,
-                onClick = {
-                  viewModel.select(report.id)
-                  // Returning false lets the SDK also centre on the marker and show its info
-                  // window, which is the behaviour people expect from a map pin.
-                  false
-                },
-            )
-          }
-        }
-      } else {
-        MissingApiKeyPanel(modifier = Modifier.fillMaxSize())
-      }
+      OsmMap(
+          reports = reports,
+          selectedReportId = uiState.selectedReportId,
+          onMapReady = { mapViewRef = it },
+          onMarkerClick = viewModel::select,
+          onMapTap = { viewModel.select(null) },
+          modifier = Modifier.fillMaxSize(),
+      )
 
       Column(
           modifier = Modifier.align(Alignment.BottomEnd).padding(UrbanSenseTheme.spacing.md),
           verticalArrangement = Arrangement.spacedBy(UrbanSenseTheme.spacing.sm),
       ) {
-        if (hasApiKey && reports.isNotEmpty()) {
+        if (reports.isNotEmpty()) {
           SmallFloatingActionButton(
               onClick = { viewModel.select(reports.first().id) },
               containerColor = MaterialTheme.colorScheme.surface,
@@ -321,60 +272,104 @@ fun MapScreen(
       }
     }
   }
-
-  // Card tapped -> fly the camera to its pin. Kept separate from the scroll effect above so the two
-  // directions cannot fight each other over the same LaunchedEffect key.
-  val selectedPosition by
-      remember(reports, uiState.selectedReportId) {
-        derivedStateOf {
-          reports.firstOrNull { it.id == uiState.selectedReportId }?.let {
-            LatLng(it.latitude, it.longitude)
-          }
-        }
-      }
-  LaunchedEffect(selectedPosition) {
-    selectedPosition?.let {
-      cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(it, SINGLE_REPORT_ZOOM), 500)
-    }
-  }
 }
 
+/**
+ * Thin Compose wrapper around osmdroid's `MapView`, which is a plain Android `View` with no Compose
+ * API of its own. Markers are rebuilt on every report-list change rather than diffed — the list is
+ * at most a few dozen occurrences, so the cost is negligible next to the clarity of not hand-rolling
+ * a marker reconciler.
+ */
 @Composable
-private fun MissingApiKeyPanel(modifier: Modifier = Modifier) {
-  Box(
-      modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
-      contentAlignment = Alignment.Center,
-  ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(UrbanSenseTheme.spacing.sm),
-        modifier = Modifier.padding(UrbanSenseTheme.spacing.xl),
-    ) {
-      Icon(
-          imageVector = Icons.Default.LocationOff,
-          contentDescription = null,
-          tint = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.size(32.dp),
-      )
-      Text(
-          text = stringResource(R.string.map_no_api_key_title),
-          style = MaterialTheme.typography.titleMedium,
-          textAlign = TextAlign.Center,
-      )
-      Text(
-          text = stringResource(R.string.map_no_api_key_subtitle),
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          textAlign = TextAlign.Center,
-      )
-    }
-  }
+private fun OsmMap(
+    reports: List<LocalReport>,
+    selectedReportId: String?,
+    onMapReady: (MapView) -> Unit,
+    onMarkerClick: (String) -> Unit,
+    onMapTap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+  val currentOnMarkerClick by rememberUpdatedState(onMarkerClick)
+  val currentOnMapTap by rememberUpdatedState(onMapTap)
+
+  AndroidView(
+      modifier = modifier,
+      factory = { context ->
+        MapView(context).apply {
+          setTileSource(TileSourceFactory.MAPNIK)
+          setMultiTouchControls(true)
+          zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
+          minZoomLevel = 3.0
+          controller.setZoom(CITY_ZOOM)
+          controller.setCenter(DEFAULT_CENTRE)
+
+          // A tap that lands on the map itself (not a marker) clears the selection.
+          overlays.add(
+              MapEventsOverlay(
+                  object : MapEventsReceiver {
+                    override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
+                      currentOnMapTap()
+                      return false
+                    }
+
+                    override fun longPressHelper(p: GeoPoint?): Boolean = false
+                  }
+              )
+          )
+
+          onMapReady(this)
+        }
+      },
+      update = { mapView ->
+        mapView.overlays.removeAll { it is Marker }
+        reports.forEach { report ->
+          val isSelected = report.id == selectedReportId
+          val marker =
+              Marker(mapView).apply {
+                position = GeoPoint(report.latitude, report.longitude)
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                icon = pinDrawable(mapView.context, colorFor(report.status), isSelected)
+                setInfoWindow(null)
+                setOnMarkerClickListener { _, _ ->
+                  currentOnMarkerClick(report.id)
+                  true
+                }
+              }
+          // Selected pin drawn last so it renders above any pin it overlaps.
+          if (isSelected) mapView.overlays.add(marker) else mapView.overlays.add(0, marker)
+        }
+        mapView.invalidate()
+      },
+  )
 }
 
-private fun hueFor(rawStatus: String?): Float =
+/**
+ * Draws a filled circular pin, sized up when [selected] — cheaper than shipping a bitmap asset per
+ * status colour and per selection state.
+ */
+private fun pinDrawable(context: Context, color: Color, selected: Boolean): Drawable {
+  val dp = context.resources.displayMetrics.density
+  val diameterPx = ((if (selected) 30 else 22) * dp).toInt()
+  val bitmap = Bitmap.createBitmap(diameterPx, diameterPx, Bitmap.Config.ARGB_8888)
+  val canvas = Canvas(bitmap)
+  val strokeWidth = diameterPx * 0.14f
+  val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color.toArgb() }
+  val strokePaint =
+      Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.color = android.graphics.Color.WHITE
+        style = Paint.Style.STROKE
+        this.strokeWidth = strokeWidth
+      }
+  val radius = diameterPx / 2f - strokeWidth / 2
+  canvas.drawCircle(diameterPx / 2f, diameterPx / 2f, radius, fillPaint)
+  canvas.drawCircle(diameterPx / 2f, diameterPx / 2f, radius, strokePaint)
+  return BitmapDrawable(context.resources, bitmap)
+}
+
+private fun colorFor(rawStatus: String?): Color =
     when (runCatching { ReportStatus.valueOf(rawStatus.orEmpty()) }.getOrNull()) {
-      ReportStatus.PROCESSED -> HUE_SENT
-      ReportStatus.QUEUED -> HUE_QUEUED
-      ReportStatus.FAILED -> HUE_FAILED
-      else -> HUE_PENDING
+      ReportStatus.PROCESSED -> Brand.GreenDeep
+      ReportStatus.QUEUED -> Brand.GreenGrass
+      ReportStatus.FAILED -> Color(0xFF9B1C1C)
+      else -> Color(0xFF8A5A00)
     }
