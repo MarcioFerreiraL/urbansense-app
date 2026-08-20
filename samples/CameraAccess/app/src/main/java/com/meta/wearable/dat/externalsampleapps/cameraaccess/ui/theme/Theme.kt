@@ -5,7 +5,6 @@
 
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -84,10 +83,15 @@ internal val LocalSemanticColors = staticCompositionLocalOf { LightSemanticColor
  * Deliberately does *not* opt into Material You dynamic color: this is a civic reporting tool where
  * the green identity carries meaning (it is the brand, and green also reads as "sent/OK" in the
  * status chips), so letting the wallpaper repaint it would be a regression.
+ *
+ * Always renders the light palette regardless of the system setting: [DarkColors] pairs the brand
+ * green with a near-black background, which on a phone in system dark mode reads as an oversaturated
+ * wall of green rather than the white-and-green civic look the brand is meant to have. A reporting
+ * tool used in daylight, outdoors, doesn't need a dark mode badly enough to justify that trade-off.
  */
 @Composable
 fun UrbanSenseTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
   val colorScheme = if (darkTheme) DarkColors else LightColors

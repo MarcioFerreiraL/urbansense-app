@@ -17,6 +17,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
@@ -132,7 +133,14 @@ class MainActivity : ComponentActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    enableEdgeToEdge()
+    // Fixed light bars, not `auto`: the app UI is now always the light/white theme (see
+    // UrbanSenseTheme), so status/nav bar icons must stay dark regardless of the system's
+    // dark-mode setting — otherwise a phone in system dark mode gets light icons on the app's
+    // white background and they disappear.
+    enableEdgeToEdge(
+        statusBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+        navigationBarStyle = SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+    )
 
     // Initialize Meta Wearables DAT SDK first before any ViewModel or Selector accesses it
     Wearables.initialize(applicationContext)
