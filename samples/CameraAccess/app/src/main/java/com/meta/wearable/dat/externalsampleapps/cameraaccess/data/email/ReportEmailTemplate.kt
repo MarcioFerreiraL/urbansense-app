@@ -39,6 +39,10 @@ object ReportEmailTemplate {
         val triggerLabel: String,
         val deviceId: String?,
         val cityHallName: String,
+        /** Rótulo devolvido pelo backend de detecção (YOLO11), quando disponível — ex.
+         *  "DESCARTE DE LIXO DETECTADO". Nulo quando a IA não respondeu a tempo; o e-mail ainda
+         *  sai, só sem essa linha extra. */
+        val detectionResult: String? = null,
     )
 
     fun subject(data: ReportEmailData): String =
@@ -68,7 +72,7 @@ object ReportEmailTemplate {
                 <tr>
                   <td style="padding:24px 28px 8px 28px;">
                     <span style="display:inline-block;background:$GREEN_SOFT_BG;color:$GREEN_ACTION;font-size:12px;font-weight:bold;padding:6px 12px;border-radius:999px;">
-                      DESCARTE IRREGULAR DETECTADO
+                      ${escape(data.detectionResult ?: "DESCARTE IRREGULAR DETECTADO")}
                     </span>
                     <h1 style="margin:14px 0 4px 0;font-size:19px;color:#1E2A20;">Nova ocorrência registrada por um cidadão</h1>
                     <p style="margin:0;font-size:14px;color:$TEXT_MUTED;line-height:1.5;">
@@ -88,6 +92,7 @@ object ReportEmailTemplate {
                 <tr>
                   <td style="padding:8px 28px 24px 28px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                      ${if (data.detectionResult != null) metadataRow("Detecção da IA", data.detectionResult) else ""}
                       ${metadataRow("Data e hora", whenText)}
                       ${metadataRow("Coordenadas GPS", gps)}
                       ${metadataRow("Precisão do sinal", accuracyText)}

@@ -59,6 +59,10 @@ class ReportRepository(
         val imageFile = saveBitmapToCache(bitmap, tempId)
 
         // 3. Prepare initial local record
+        com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
+            "UrbanSense:Repository",
+            "📸 Registro salvo localmente. ID: $tempId"
+        )
         var localRecord = LocalReport(
             id = tempId,
             localImagePath = imageFile?.absolutePath,
@@ -85,7 +89,42 @@ class ReportRepository(
             return@withContext ReportSubmissionResult.Failure("Erro ao salvar imagem", feedback, false)
         }
 
-        // 4. Notify the city hall by e-mail (Mailtrap) — the citizen-facing delivery channel.
+        // 4. Ask the AI backend (YOLO11) to classify the photo — best effort. A slow or
+        // unreachable detector must not block the citizen from notifying the city hall, so its
+        // failure is swallowed here rather than failing the whole submission.
+        var detectionResult: String? = null
+        var remoteThumbnailUrl: String? = null
+        try {
+            val (statusCode, response) = NativeHttpDispatcher.submitMultipartReport(
+                baseUrl = settings.apiUrl,
+                authToken = settings.authToken,
+                imageFile = imageFile,
+                latitude = location.latitude,
+                longitude = location.longitude,
+                accuracy = location.accuracy,
+                timestampIso = location.timestampIso,
+                triggerType = triggerType.name,
+                deviceId = settings.deviceId
+            )
+            if (statusCode in 200..299) {
+                detectionResult = response.detectionResult ?: response.data?.detectionResult
+                remoteThumbnailUrl = response.data?.thumbnailUrl
+                com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
+                    "UrbanSense:Repository",
+                    "✅ Detecção da IA para $tempId: $detectionResult"
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "AI detection unavailable, continuing without it", e)
+        }
+        localRecord = localRecord.copy(
+            remoteThumbnailUrl = remoteThumbnailUrl,
+            detectionResult = detectionResult ?: localRecord.detectionResult
+        )
+
+        // 5. Notify the city hall by e-mail (Mailtrap) — the citizen-facing delivery channel.
+        // This step decides the final status: QUEUED ("Enviado") only once the prefeitura has
+        // actually been notified, regardless of whether the AI detection above succeeded.
         try {
             val emailData = ReportEmailTemplate.ReportEmailData(
                 reportId = tempId,
@@ -96,6 +135,7 @@ class ReportRepository(
                 triggerLabel = triggerLabelPlain(triggerType),
                 deviceId = settings.deviceId,
                 cityHallName = "Prefeitura Municipal de Surubim",
+                detectionResult = detectionResult,
             )
 
             val result = MailtrapEmailDispatcher.sendReportEmail(
@@ -109,7 +149,11 @@ class ReportRepository(
             )
 
             if (result.success) {
-                val audioFeedback = "Registro enviado por e-mail para a Prefeitura de Surubim."
+                val audioFeedback = if (detectionResult != null) {
+                    "$detectionResult. E-mail enviado para a Prefeitura de Surubim."
+                } else {
+                    "Registro enviado por e-mail para a Prefeitura de Surubim."
+                }
 
                 localRecord = localRecord.copy(
                     status = ReportStatus.QUEUED.name,
@@ -279,8 +323,8 @@ class ReportRepository(
 
     private fun saveBitmapToCache(bitmap: Bitmap, reportId: String): File? {
         return try {
-            val cacheDir = File(context.cacheDir, "reports").apply { if (!exists()) mkdirs() }
-            val file = File(cacheDir, "$reportId.jpg")
+            val reportsDir = File(context.filesDir, "reports").apply { if (!exists()) mkdirs() }
+            val file = File(reportsDir, "$reportId.jpg")
             FileOutputStream(file).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
             }

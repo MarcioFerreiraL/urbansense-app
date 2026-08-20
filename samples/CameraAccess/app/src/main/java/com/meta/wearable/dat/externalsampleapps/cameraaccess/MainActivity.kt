@@ -136,6 +136,7 @@ class MainActivity : ComponentActivity() {
 
     // Initialize Meta Wearables DAT SDK first before any ViewModel or Selector accesses it
     Wearables.initialize(applicationContext)
+    com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.init(applicationContext)
 
     // Initialize core services & repositories
     locationManagerHelper = LocationManagerHelper(this)
