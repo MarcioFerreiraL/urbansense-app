@@ -105,6 +105,12 @@ class ReportRepository(
                 val reportId = response.data?.reportId ?: tempId
                 val audioFeedback = response.audioFeedback ?: "Registro enviado com sucesso."
                 val remoteUrl = response.data?.thumbnailUrl
+                val detections = response.detections.ifEmpty { response.data?.detections ?: emptyList() }
+
+                // Draw bounding box annotations directly on local image file if trash/pothole detected
+                if (detections.isNotEmpty() && imageFile.exists()) {
+                    com.meta.wearable.dat.externalsampleapps.cameraaccess.ui.util.ImageAnnotationUtils.annotateAndSaveImage(imageFile, detections)
+                }
 
                 com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
                     "UrbanSense:Repository",
