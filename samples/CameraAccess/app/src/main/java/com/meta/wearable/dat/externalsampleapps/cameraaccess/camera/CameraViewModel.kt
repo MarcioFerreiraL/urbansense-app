@@ -61,6 +61,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 class CameraViewModel(
     application: Application,
@@ -434,6 +436,11 @@ class CameraViewModel(
     if (_uiState.value.isCapturingPhoto || !_uiState.value.isStreaming) return
     _uiState.update { it.copy(isCapturingPhoto = true) }
     viewModelScope.launch {
+      val frame = capturePhotoDirectly()
+      if (frame != null) {
+        _uiState.update { it.copy(isCapturingPhoto = false, activePreview = CapturePreview.Photo(frame)) }
+        return@launch
+      }
       stream
           ?.capturePhoto()
           ?.onSuccess { photoData ->
@@ -464,7 +471,54 @@ class CameraViewModel(
    * If the wearable stream is active, captures from the glasses camera.
    * Otherwise, generates a synthetic test frame for offline/lab demo testing.
    */
+  private suspend fun captureVideoFrameBitmap(): Bitmap? = suspendCancellableCoroutine { continuation ->
+    val surface = decoderSurface
+    if (surface == null || !surface.isValid) {
+      continuation.resume(null)
+      return@suspendCancellableCoroutine
+    }
+
+    try {
+      val width = 720
+      val height = 960
+      val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+      val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+        android.view.PixelCopy.request(
+          surface,
+          bitmap,
+          { copyResult ->
+            if (copyResult == android.view.PixelCopy.SUCCESS) {
+              com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
+                "UrbanSense:Camera",
+                "⚡ Frame de vídeo capturado instantaneamente via PixelCopy!"
+              )
+              continuation.resume(bitmap)
+            } else {
+              bitmap.recycle()
+              continuation.resume(null)
+            }
+          },
+          handler
+        )
+      } else {
+        bitmap.recycle()
+        continuation.resume(null)
+      }
+    } catch (e: Exception) {
+      Log.e(TAG, "Error performing PixelCopy from video surface", e)
+      continuation.resume(null)
+    }
+  }
+
   suspend fun capturePhotoDirectly(): Bitmap? {
+    // 1. Try instant video frame capture (0ms latency, does not pause camera stream)
+    val frameBitmap = captureVideoFrameBitmap()
+    if (frameBitmap != null) {
+      return frameBitmap
+    }
+
     if (_uiState.value.isStreaming && stream != null) {
       val photoResult = stream?.capturePhoto()
       var capturedBitmap: Bitmap? = null
