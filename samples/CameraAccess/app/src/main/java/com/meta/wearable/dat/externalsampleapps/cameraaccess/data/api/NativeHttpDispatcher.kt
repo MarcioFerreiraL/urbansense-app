@@ -6,6 +6,7 @@
 package com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api
 
 import android.util.Log
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -22,8 +23,29 @@ import java.util.UUID
 object NativeHttpDispatcher {
 
     private const val TAG = "UrbanSense:Http"
-    private const val TIMEOUT_MS = 15000
+    private const val CONNECT_TIMEOUT_MS = 30000 // 30s connection timeout
+    private const val READ_TIMEOUT_MS = 90000    // 90s timeout for YOLO11 AI inference
     private const val LINE_FEED = "\r\n"
+
+    private fun resolveTargetUrl(baseUrl: String): String {
+        val trimmed = baseUrl.trim().trimEnd('/')
+        return try {
+            val url = URL(trimmed)
+            val host = url.host
+            val scheme = url.protocol
+            val port = if (url.port != -1) ":${url.port}" else ""
+            
+            // For any domain (like urbansense-ai.marciodev.com), ensure target is directly /predict
+            "$scheme://$host$port/predict"
+        } catch (e: Exception) {
+            var clean = trimmed
+            if (clean.endsWith("/predict")) clean = clean.substringBeforeLast("/predict")
+            if (clean.endsWith("/detect")) clean = clean.substringBeforeLast("/detect")
+            if (clean.endsWith("/reports")) clean = clean.substringBeforeLast("/reports")
+            if (clean.endsWith("/v1")) clean = clean.substringBeforeLast("/v1")
+            "${clean.trimEnd('/')}/predict"
+        }
+    }
 
     suspend fun submitMultipartReport(
         baseUrl: String,
@@ -37,27 +59,39 @@ object NativeHttpDispatcher {
         deviceId: String?
     ): Pair<Int, ReportSubmissionResponse> = withContext(Dispatchers.IO) {
         val boundary = "===UrbanSenseBoundary${System.currentTimeMillis()}==="
-        val targetUrl = if (baseUrl.endsWith("/")) "${baseUrl}reports" else "$baseUrl/reports"
+        val targetUrl = resolveTargetUrl(baseUrl)
+        val imageSizeKb = (imageFile.length() / 1024).toInt()
+
+        AppLogger.net(
+            TAG,
+            "🚀 [POST /predict] Iniciando envio de foto (${imageSizeKb} KB)\n" +
+            "📍 URL: $targetUrl\n" +
+            "🗺️ GPS: Lat $latitude, Lng $longitude\n" +
+            "📱 DeviceId: $deviceId | Trigger: $triggerType"
+        )
 
         var connection: HttpURLConnection? = null
+        val startTime = System.currentTimeMillis()
         try {
             val url = URL(targetUrl)
             connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
-                connectTimeout = TIMEOUT_MS
-                readTimeout = TIMEOUT_MS
+                connectTimeout = CONNECT_TIMEOUT_MS
+                readTimeout = READ_TIMEOUT_MS
                 doInput = true
                 doOutput = true
                 useCaches = false
                 setRequestProperty("Connection", "Keep-Alive")
                 setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
                 setRequestProperty("Accept", "application/json")
-                val tokenHeader = if (authToken.startsWith("Bearer ", ignoreCase = true)) authToken else "Bearer $authToken"
-                setRequestProperty("Authorization", tokenHeader)
+                if (authToken.isNotBlank()) {
+                    val tokenHeader = if (authToken.startsWith("Bearer ", ignoreCase = true)) authToken else "Bearer $authToken"
+                    setRequestProperty("Authorization", tokenHeader)
+                }
             }
 
             DataOutputStream(connection.outputStream).use { outputStream ->
-                // 1. Text form fields
+                // 1. Text form fields (GPS & Metadata)
                 writeFormField(outputStream, boundary, "latitude", latitude.toString())
                 writeFormField(outputStream, boundary, "longitude", longitude.toString())
                 if (accuracy != null) {
@@ -69,7 +103,8 @@ object NativeHttpDispatcher {
                     writeFormField(outputStream, boundary, "device_id", deviceId)
                 }
 
-                // 2. Binary Image File
+                // 2. Binary Image File (FastAPI expects 'file', generic expects 'image')
+                writeFileField(outputStream, boundary, "file", imageFile)
                 writeFileField(outputStream, boundary, "image", imageFile)
 
                 // End of multipart
@@ -78,13 +113,24 @@ object NativeHttpDispatcher {
             }
 
             val statusCode = connection.responseCode
+            val durationMs = System.currentTimeMillis() - startTime
             val responseText = readStream(if (statusCode in 200..299) connection.inputStream else connection.errorStream)
-            Log.d(TAG, "Server response ($statusCode): $responseText")
+
+            AppLogger.net(
+                TAG,
+                "✅ Resposta recebida da API em ${durationMs}ms (HTTP $statusCode)\n" +
+                "📄 Corpo da Resposta: $responseText"
+            )
 
             val parsedResponse = parseSubmissionResponse(statusCode, responseText)
             Pair(statusCode, parsedResponse)
         } catch (e: Exception) {
-            Log.e(TAG, "Network connection error", e)
+            val durationMs = System.currentTimeMillis() - startTime
+            AppLogger.e(
+                TAG,
+                "❌ Erro de conexão com a API ($targetUrl) após ${durationMs}ms: ${e.localizedMessage}",
+                e
+            )
             Pair(
                 -1,
                 ReportSubmissionResponse(
@@ -111,8 +157,8 @@ object NativeHttpDispatcher {
             val url = URL(targetUrl)
             connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
-                connectTimeout = TIMEOUT_MS
-                readTimeout = TIMEOUT_MS
+                connectTimeout = CONNECT_TIMEOUT_MS
+                readTimeout = READ_TIMEOUT_MS
                 doInput = true
                 setRequestProperty("Accept", "application/json")
                 val tokenHeader = if (authToken.startsWith("Bearer ", ignoreCase = true)) authToken else "Bearer $authToken"
@@ -184,10 +230,55 @@ object NativeHttpDispatcher {
 
         return try {
             val json = JSONObject(jsonString)
+
+            // Check if response comes from urbansense-api (FastAPI YOLO11 model)
+            val isYoloFastApi = json.has("has_trash") || json.has("has_pothole") || json.has("detections")
+
+            if (isYoloFastApi) {
+                val hasTrash = json.optBoolean("has_trash", false)
+                val hasPothole = json.optBoolean("has_pothole", false)
+
+                val detectionLabel = when {
+                    hasTrash && hasPothole -> "DESCARTE DE LIXO E BURACO NA VIA"
+                    hasTrash -> "DESCARTE DE LIXO DETECTADO"
+                    hasPothole -> "BURACO NA VIA DETECTADO"
+                    else -> "SEM RESIDUOS"
+                }
+
+                val dynamicAudioFeedback = when {
+                    hasTrash && hasPothole -> "Atenção: Descarte irregular de lixo e buraco na pista detectados!"
+                    hasTrash -> "Descarte irregular de lixo identificado na via."
+                    hasPothole -> "Atenção: Buraco na pista detectado."
+                    else -> "Vistoria concluída. Nenhum problema urbano detectado."
+                }
+
+                val reportId = "pred_" + UUID.randomUUID().toString().take(8)
+                val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).format(java.util.Date())
+
+                val reportData = ReportData(
+                    reportId = reportId,
+                    createdAt = timestamp,
+                    status = "PROCESSED",
+                    thumbnailUrl = null,
+                    audioFeedback = dynamicAudioFeedback,
+                    detectionResult = detectionLabel
+                )
+
+                return ReportSubmissionResponse(
+                    status = "success",
+                    message = "Incerence completed",
+                    code = "200",
+                    audioFeedback = dynamicAudioFeedback,
+                    detectionResult = detectionLabel,
+                    data = reportData
+                )
+            }
+
             val status = json.optString("status", "unknown")
             val message = if (json.has("message") && !json.isNull("message")) json.getString("message") else null
             val code = if (json.has("code") && !json.isNull("code")) json.getString("code") else null
             val audioFeedback = if (json.has("audio_feedback") && !json.isNull("audio_feedback")) json.getString("audio_feedback") else null
+            val detectionResult = if (json.has("detection_result") && !json.isNull("detection_result")) json.getString("detection_result") else null
 
             var reportData: ReportData? = null
             if (json.has("data") && !json.isNull("data")) {
@@ -197,12 +288,13 @@ object NativeHttpDispatcher {
                     createdAt = dataObj.optString("created_at", ""),
                     status = dataObj.optString("status", "QUEUED"),
                     thumbnailUrl = if (dataObj.has("thumbnail_url") && !dataObj.isNull("thumbnail_url")) dataObj.getString("thumbnail_url") else null,
-                    audioFeedback = if (dataObj.has("audio_feedback") && !dataObj.isNull("audio_feedback")) dataObj.getString("audio_feedback") else null
+                    audioFeedback = if (dataObj.has("audio_feedback") && !dataObj.isNull("audio_feedback")) dataObj.getString("audio_feedback") else null,
+                    detectionResult = if (dataObj.has("detection_result") && !dataObj.isNull("detection_result")) dataObj.getString("detection_result") else null
                 )
             }
 
             val finalAudioFeedback = audioFeedback ?: reportData?.audioFeedback ?: when (statusCode) {
-                201 -> "Registro enviado com sucesso."
+                200, 201 -> "Registro enviado com sucesso."
                 400 -> "Erro ao enviar. Dados de localização inválidos."
                 401 -> "Erro de autenticação no aplicativo."
                 422 -> "Falha na imagem capturada."
@@ -215,6 +307,7 @@ object NativeHttpDispatcher {
                 message = message,
                 code = code,
                 audioFeedback = finalAudioFeedback,
+                detectionResult = detectionResult ?: reportData?.detectionResult,
                 data = reportData
             )
         } catch (e: Exception) {

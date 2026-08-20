@@ -15,7 +15,8 @@ data class ReportSubmissionResponse(
     @SerializedName("message") val message: String? = null,
     @SerializedName("data") val data: ReportData? = null,
     @SerializedName("code") val code: String? = null,
-    @SerializedName("audio_feedback") val audioFeedback: String? = null
+    @SerializedName("audio_feedback") val audioFeedback: String? = null,
+    @SerializedName("detection_result") val detectionResult: String? = null
 )
 
 data class ReportData(
@@ -23,7 +24,8 @@ data class ReportData(
     @SerializedName("created_at") val createdAt: String,
     @SerializedName("status") val status: String,
     @SerializedName("thumbnail_url") val thumbnailUrl: String? = null,
-    @SerializedName("audio_feedback") val audioFeedback: String? = null
+    @SerializedName("audio_feedback") val audioFeedback: String? = null,
+    @SerializedName("detection_result") val detectionResult: String? = null
 )
 
 /**

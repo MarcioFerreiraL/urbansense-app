@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
 data class AppSettings(
-    val apiUrl: String = "https://api.urbanscience.ai/v1",
-    val authToken: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.urbansense_demo_token",
+    val apiUrl: String = "https://urbansense-ai.marciodev.com",
+    val authToken: String = "",
     val autoCaptureIntervalSec: Int = 15,
     val isMotionDetectionEnabled: Boolean = true,
     val isAudioVoiceFeedbackEnabled: Boolean = true,
@@ -35,9 +35,19 @@ class SettingsRepository(context: Context) {
             prefs.edit().putString(KEY_DEVICE_ID, devId).apply()
         }
 
+        val rawUrl = prefs.getString(KEY_API_URL, null)
+        val validUrl = if (rawUrl.isNullOrBlank() || rawUrl.contains("/v1") || rawUrl.contains("/reports") || !rawUrl.contains("predict")) {
+            "https://urbansense-ai.marciodev.com/predict"
+        } else {
+            rawUrl
+        }
+        if (rawUrl != validUrl) {
+            prefs.edit().putString(KEY_API_URL, validUrl).apply()
+        }
+
         return AppSettings(
-            apiUrl = prefs.getString(KEY_API_URL, "https://api.urbanscience.ai/v1") ?: "https://api.urbanscience.ai/v1",
-            authToken = prefs.getString(KEY_AUTH_TOKEN, "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.urbansense_demo_token") ?: "",
+            apiUrl = validUrl,
+            authToken = prefs.getString(KEY_AUTH_TOKEN, "") ?: "",
             autoCaptureIntervalSec = prefs.getInt(KEY_AUTO_INTERVAL, 15),
             isMotionDetectionEnabled = prefs.getBoolean(KEY_MOTION_ENABLED, true),
             isAudioVoiceFeedbackEnabled = prefs.getBoolean(KEY_AUDIO_FEEDBACK, true),

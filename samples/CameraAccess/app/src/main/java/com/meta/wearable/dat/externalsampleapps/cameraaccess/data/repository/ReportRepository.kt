@@ -57,6 +57,10 @@ class ReportRepository(
         val imageFile = saveBitmapToCache(bitmap, tempId)
 
         // 3. Prepare initial local record
+        com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
+            "UrbanSense:Repository",
+            "📸 Registro salvo localmente. ID: $tempId"
+        )
         var localRecord = LocalReport(
             id = tempId,
             localImagePath = imageFile?.absolutePath,
@@ -102,21 +106,20 @@ class ReportRepository(
                 val audioFeedback = response.audioFeedback ?: "Registro enviado com sucesso."
                 val remoteUrl = response.data?.thumbnailUrl
 
-                // Free phone storage by deleting local temporary file after server upload
-                try {
-                    if (imageFile.exists()) {
-                        imageFile.delete()
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to delete temporary local report file", e)
-                }
+                com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
+                    "UrbanSense:Repository",
+                    "✅ Ocorrência $reportId confirmada pela API. Detecção: ${response.detectionResult}"
+                )
+
+                val detectionResult = response.detectionResult ?: response.data?.detectionResult
 
                 localRecord = localRecord.copy(
-                    id = reportId,
-                    localImagePath = if (remoteUrl != null) null else localRecord.localImagePath,
+                    // Keep original tempId primary key to UPDATE the same row in Room DB
+                    localImagePath = localRecord.localImagePath,
                     remoteThumbnailUrl = remoteUrl,
                     status = ReportStatus.QUEUED.name,
-                    audioFeedback = audioFeedback
+                    audioFeedback = audioFeedback,
+                    detectionResult = detectionResult ?: localRecord.detectionResult
                 )
                 reportStore.insertOrUpdate(localRecord)
 
@@ -275,8 +278,8 @@ class ReportRepository(
 
     private fun saveBitmapToCache(bitmap: Bitmap, reportId: String): File? {
         return try {
-            val cacheDir = File(context.cacheDir, "reports").apply { if (!exists()) mkdirs() }
-            val file = File(cacheDir, "$reportId.jpg")
+            val reportsDir = File(context.filesDir, "reports").apply { if (!exists()) mkdirs() }
+            val file = File(reportsDir, "$reportId.jpg")
             FileOutputStream(file).use { out ->
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
             }
