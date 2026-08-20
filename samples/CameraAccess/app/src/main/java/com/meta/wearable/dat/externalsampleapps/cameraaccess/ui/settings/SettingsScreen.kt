@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Api
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.SmartToy
@@ -69,6 +70,12 @@ fun SettingsScreen(
     var apiUrlInput by remember(settings.apiUrl) { mutableStateOf(settings.apiUrl) }
     var tokenInput by remember(settings.authToken) { mutableStateOf(settings.authToken) }
     var isTokenVisible by remember { mutableStateOf(false) }
+
+    var mailtrapUrlInput by remember(settings.mailtrapApiUrl) { mutableStateOf(settings.mailtrapApiUrl) }
+    var mailtrapTokenInput by remember(settings.mailtrapApiToken) { mutableStateOf(settings.mailtrapApiToken) }
+    var isMailtrapTokenVisible by remember { mutableStateOf(false) }
+    var senderEmailInput by remember(settings.mailtrapSenderEmail) { mutableStateOf(settings.mailtrapSenderEmail) }
+    var cityHallEmailInput by remember(settings.cityHallEmail) { mutableStateOf(settings.cityHallEmail) }
 
     Column(
         modifier = modifier
@@ -148,6 +155,113 @@ fun SettingsScreen(
                             )
                         }
                     },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // E-mail Notification Section (Mailtrap)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Email,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Notificação por E-mail (Mailtrap)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Cada ocorrência registrada é enviada por e-mail à prefeitura, com foto e dados de localização anexados.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = mailtrapUrlInput,
+                    onValueChange = {
+                        mailtrapUrlInput = it
+                        viewModel.updateMailtrapApiUrl(it)
+                    },
+                    label = { Text("URL da API do Mailtrap") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Cole a URL de Sending do seu inbox de Testing (Mailtrap > Email Testing > Inbox > SMTP/API), com o ID do inbox.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = mailtrapTokenInput,
+                    onValueChange = {
+                        mailtrapTokenInput = it
+                        viewModel.updateMailtrapApiToken(it)
+                    },
+                    label = { Text("Token da API do Mailtrap") },
+                    singleLine = true,
+                    visualTransformation =
+                        if (isMailtrapTokenVisible) VisualTransformation.None
+                        else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { isMailtrapTokenVisible = !isMailtrapTokenVisible }) {
+                            Icon(
+                                imageVector =
+                                    if (isMailtrapTokenVisible) Icons.Default.VisibilityOff
+                                    else Icons.Default.Visibility,
+                                contentDescription =
+                                    stringResource(
+                                        if (isMailtrapTokenVisible) R.string.settings_token_hide
+                                        else R.string.settings_token_show
+                                    )
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = senderEmailInput,
+                    onValueChange = {
+                        senderEmailInput = it
+                        viewModel.updateMailtrapSenderEmail(it)
+                    },
+                    label = { Text("E-mail remetente") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = cityHallEmailInput,
+                    onValueChange = {
+                        cityHallEmailInput = it
+                        viewModel.updateCityHallEmail(it)
+                    },
+                    label = { Text("E-mail da Prefeitura (destinatário)") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

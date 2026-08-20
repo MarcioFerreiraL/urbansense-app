@@ -27,7 +27,7 @@ data class MapUiState(
     /** Where the map should sit when there is nothing to frame yet. */
     val fallbackLatitude: Double? = null,
     val fallbackLongitude: Double? = null,
-    /** Host of the configured API, shown on each card as "Enviado para". */
+    /** E-mail da prefeitura configurado, mostrado em cada card como "Enviado para". */
     val destinationHost: String = "",
 )
 
@@ -52,7 +52,7 @@ class MapViewModel(
   val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
 
   init {
-    _uiState.value = _uiState.value.copy(destinationHost = hostOf(settingsRepository.getSettings().apiUrl))
+    _uiState.value = _uiState.value.copy(destinationHost = settingsRepository.getSettings().cityHallEmail)
   }
 
   fun select(reportId: String?) {
@@ -76,10 +76,6 @@ class MapViewModel(
   }
 
   fun refreshDestination() {
-    _uiState.value = _uiState.value.copy(destinationHost = hostOf(settingsRepository.getSettings().apiUrl))
+    _uiState.value = _uiState.value.copy(destinationHost = settingsRepository.getSettings().cityHallEmail)
   }
-
-  /** "https://api.urbanscience.ai/v1" -> "api.urbanscience.ai". The full URL never fits a card. */
-  private fun hostOf(apiUrl: String): String =
-      runCatching { java.net.URI(apiUrl).host.orEmpty() }.getOrDefault("")
 }

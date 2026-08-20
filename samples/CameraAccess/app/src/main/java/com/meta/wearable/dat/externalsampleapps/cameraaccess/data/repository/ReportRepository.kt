@@ -8,12 +8,14 @@ package com.meta.wearable.dat.externalsampleapps.cameraaccess.data.repository
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.MailtrapEmailDispatcher
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.NativeHttpDispatcher
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.ReportItem
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.ReportStatus
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.TriggerType
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.db.LocalReport
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.db.LocalReportStore
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.email.ReportEmailTemplate
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.audio.AudioFeedbackManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.location.LocationManagerHelper
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.location.TaggedLocation
@@ -83,76 +85,66 @@ class ReportRepository(
             return@withContext ReportSubmissionResult.Failure("Erro ao salvar imagem", feedback, false)
         }
 
-        // 4. Dispatch Multipart Request to API via NativeHttpDispatcher
+        // 4. Notify the city hall by e-mail (Mailtrap) — the citizen-facing delivery channel.
         try {
-            val (statusCode, response) = NativeHttpDispatcher.submitMultipartReport(
-                baseUrl = settings.apiUrl,
-                authToken = settings.authToken,
-                imageFile = imageFile,
+            val emailData = ReportEmailTemplate.ReportEmailData(
+                reportId = tempId,
                 latitude = location.latitude,
                 longitude = location.longitude,
                 accuracy = location.accuracy,
                 timestampIso = location.timestampIso,
-                triggerType = triggerType.name,
-                deviceId = settings.deviceId
+                triggerLabel = triggerLabelPlain(triggerType),
+                deviceId = settings.deviceId,
+                cityHallName = "Prefeitura Municipal de Surubim",
             )
 
-            if (statusCode in 200..299) {
-                val reportId = response.data?.reportId ?: tempId
-                val audioFeedback = response.audioFeedback ?: "Registro enviado com sucesso."
-                val remoteUrl = response.data?.thumbnailUrl
+            val result = MailtrapEmailDispatcher.sendReportEmail(
+                apiUrl = settings.mailtrapApiUrl,
+                apiToken = settings.mailtrapApiToken,
+                fromEmail = settings.mailtrapSenderEmail,
+                toEmail = settings.cityHallEmail,
+                subject = ReportEmailTemplate.subject(emailData),
+                htmlBody = ReportEmailTemplate.buildHtml(emailData),
+                imageFile = imageFile,
+            )
 
-                // Free phone storage by deleting local temporary file after server upload
-                try {
-                    if (imageFile.exists()) {
-                        imageFile.delete()
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to delete temporary local report file", e)
-                }
+            if (result.success) {
+                val audioFeedback = "Registro enviado por e-mail para a Prefeitura de Surubim."
 
                 localRecord = localRecord.copy(
-                    id = reportId,
-                    localImagePath = if (remoteUrl != null) null else localRecord.localImagePath,
-                    remoteThumbnailUrl = remoteUrl,
                     status = ReportStatus.QUEUED.name,
-                    audioFeedback = audioFeedback
+                    audioFeedback = audioFeedback,
+                    errorMessage = null,
                 )
                 reportStore.insertOrUpdate(localRecord)
 
                 audioFeedbackManager.speakSuccess(audioFeedback, settings.isAudioVoiceFeedbackEnabled)
-                ReportSubmissionResult.Success(reportId, audioFeedback)
+                ReportSubmissionResult.Success(tempId, audioFeedback)
             } else {
-                val audioFeedback = response.audioFeedback ?: when (statusCode) {
-                    400 -> "Erro ao enviar. Dados de localização inválidos."
-                    401 -> "Erro de autenticação no aplicativo."
-                    422 -> "Falha na imagem capturada."
-                    500 -> "Servidor indisponível. Tente novamente mais tarde."
-                    else -> "Falha no envio. Registro salvo localmente."
-                }
+                val audioFeedback = "Falha ao enviar e-mail. Registro salvo localmente."
 
                 localRecord = localRecord.copy(
                     status = ReportStatus.LOCAL_SAVED.name,
                     audioFeedback = audioFeedback,
-                    errorMessage = response.message ?: "Status HTTP $statusCode"
+                    errorMessage = result.message ?: "Falha no envio do e-mail (HTTP ${result.statusCode})",
                 )
                 reportStore.insertOrUpdate(localRecord)
 
                 audioFeedbackManager.speakFailure(audioFeedback, settings.isAudioVoiceFeedbackEnabled)
                 ReportSubmissionResult.Failure(
-                    errorMsg = response.message ?: "HTTP $statusCode",
+                    errorMsg = result.message ?: "HTTP ${result.statusCode}",
                     audioFeedback = audioFeedback,
-                    isOfflineSaved = true
+                    isOfflineSaved = true,
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Network error during report upload", e)
+            Log.e(TAG, "Unexpected error sending report e-mail", e)
             val audioFeedback = "Sem conexão. Registro salvo como pendente."
 
             localRecord = localRecord.copy(
                 status = ReportStatus.PENDING.name,
                 audioFeedback = audioFeedback,
-                errorMessage = e.localizedMessage ?: "Falha na conexão com o servidor"
+                errorMessage = e.localizedMessage ?: "Falha na conexão com o Mailtrap"
             )
             reportStore.insertOrUpdate(localRecord)
 
@@ -164,6 +156,9 @@ class ReportRepository(
             )
         }
     }
+
+    private fun triggerLabelPlain(triggerType: TriggerType): String =
+        if (triggerType == TriggerType.AUTOMATIC) "Captura automática" else "Captura manual"
 
     suspend fun retryReportSubmission(reportId: String): ReportSubmissionResult = withContext(Dispatchers.IO) {
         val localReport = reportStore.getReportById(reportId)
@@ -182,41 +177,50 @@ class ReportRepository(
         val settings = settingsRepository.getSettings()
 
         try {
-            val (statusCode, response) = NativeHttpDispatcher.submitMultipartReport(
-                baseUrl = settings.apiUrl,
-                authToken = settings.authToken,
-                imageFile = imageFile,
+            val emailData = ReportEmailTemplate.ReportEmailData(
+                reportId = localReport.id,
                 latitude = localReport.latitude,
                 longitude = localReport.longitude,
                 accuracy = localReport.accuracy,
                 timestampIso = localReport.timestamp,
-                triggerType = localReport.triggerType,
-                deviceId = settings.deviceId
+                triggerLabel = triggerLabelPlain(
+                    runCatching { TriggerType.valueOf(localReport.triggerType.orEmpty()) }
+                        .getOrDefault(TriggerType.MANUAL)
+                ),
+                deviceId = settings.deviceId,
+                cityHallName = "Prefeitura Municipal de Surubim",
             )
 
-            if (statusCode in 200..299) {
-                val newId = response.data?.reportId ?: localReport.id
-                val audioFeedback = response.audioFeedback ?: "Registro reenviado com sucesso."
+            val result = MailtrapEmailDispatcher.sendReportEmail(
+                apiUrl = settings.mailtrapApiUrl,
+                apiToken = settings.mailtrapApiToken,
+                fromEmail = settings.mailtrapSenderEmail,
+                toEmail = settings.cityHallEmail,
+                subject = ReportEmailTemplate.subject(emailData),
+                htmlBody = ReportEmailTemplate.buildHtml(emailData),
+                imageFile = imageFile,
+            )
 
+            if (result.success) {
+                val audioFeedback = "Registro reenviado por e-mail com sucesso."
                 val updatedRecord = localReport.copy(
-                    id = newId,
                     status = ReportStatus.QUEUED.name,
                     audioFeedback = audioFeedback,
                     errorMessage = null
                 )
                 reportStore.insertOrUpdate(updatedRecord)
                 audioFeedbackManager.speakSuccess(audioFeedback, settings.isAudioVoiceFeedbackEnabled)
-                ReportSubmissionResult.Success(newId, audioFeedback)
+                ReportSubmissionResult.Success(localReport.id, audioFeedback)
             } else {
-                val audioFeedback = response.audioFeedback ?: "Falha no reenvio. Registro mantido como pendente."
+                val audioFeedback = "Falha no reenvio do e-mail. Registro mantido como pendente."
                 val updatedRecord = localReport.copy(
                     status = ReportStatus.PENDING.name,
                     audioFeedback = audioFeedback,
-                    errorMessage = response.message ?: "HTTP $statusCode"
+                    errorMessage = result.message ?: "HTTP ${result.statusCode}"
                 )
                 reportStore.insertOrUpdate(updatedRecord)
                 audioFeedbackManager.speakFailure(audioFeedback, settings.isAudioVoiceFeedbackEnabled)
-                ReportSubmissionResult.Failure(response.message ?: "HTTP $statusCode", audioFeedback, true)
+                ReportSubmissionResult.Failure(result.message ?: "HTTP ${result.statusCode}", audioFeedback, true)
             }
         } catch (e: Exception) {
             val audioFeedback = "Servidor indisponível. Mantido como pendente."
