@@ -19,15 +19,9 @@ data class AppSettings(
     val isMotionDetectionEnabled: Boolean = true,
     val isAudioVoiceFeedbackEnabled: Boolean = true,
     val deviceId: String = "rayban_meta_01",
-    // Notificação por e-mail (Mailtrap) — como cada ocorrência chega à prefeitura hoje, sem
-    // depender de um backend próprio.
-    // Sandbox por padrão: os e-mails caem na caixa de testes do Mailtrap em vez de saírem de
-    // verdade — seguro para demonstração. Troque o {inbox_id} pelo da sua conta em Ajustes, ou
-    // aponte para "https://send.api.mailtrap.io/api/send" quando o domínio de produção estiver
-    // verificado.
-    val mailtrapApiUrl: String = "https://sandbox.api.mailtrap.io/api/send/{inbox_id}",
-    val mailtrapApiToken: String = "",
-    val mailtrapSenderEmail: String = "relatos@urbansense.ai",
+    // Quem recebe a notificação de cada ocorrência. O envio em si (detecção + e-mail via
+    // Mailtrap) roda inteiramente em urbansense-api — o app só manda a foto/GPS pra `POST
+    // /report` e diz pra quem mandar; o token do Mailtrap nunca fica no cliente.
     val cityHallEmail: String = "ouvidoria@surubim.pe.gov.br"
 )
 
@@ -45,26 +39,13 @@ class SettingsRepository(context: Context) {
             prefs.edit().putString(KEY_DEVICE_ID, devId).apply()
         }
 
-        val rawUrl = prefs.getString(KEY_API_URL, null)
-        val validUrl = if (rawUrl.isNullOrBlank() || rawUrl.contains("/v1") || rawUrl.contains("/reports") || !rawUrl.contains("predict")) {
-            "https://urbansense-ai.marciodev.com/predict"
-        } else {
-            rawUrl
-        }
-        if (rawUrl != validUrl) {
-            prefs.edit().putString(KEY_API_URL, validUrl).apply()
-        }
-
         return AppSettings(
-            apiUrl = validUrl,
+            apiUrl = prefs.getString(KEY_API_URL, "https://urbansense-ai.marciodev.com") ?: "https://urbansense-ai.marciodev.com",
             authToken = prefs.getString(KEY_AUTH_TOKEN, "") ?: "",
             autoCaptureIntervalSec = prefs.getInt(KEY_AUTO_INTERVAL, 15),
             isMotionDetectionEnabled = prefs.getBoolean(KEY_MOTION_ENABLED, true),
             isAudioVoiceFeedbackEnabled = prefs.getBoolean(KEY_AUDIO_FEEDBACK, true),
             deviceId = devId,
-            mailtrapApiUrl = prefs.getString(KEY_MAILTRAP_URL, "https://sandbox.api.mailtrap.io/api/send/{inbox_id}") ?: "https://sandbox.api.mailtrap.io/api/send/{inbox_id}",
-            mailtrapApiToken = prefs.getString(KEY_MAILTRAP_TOKEN, "") ?: "",
-            mailtrapSenderEmail = prefs.getString(KEY_MAILTRAP_SENDER, "relatos@urbansense.ai") ?: "relatos@urbansense.ai",
             cityHallEmail = prefs.getString(KEY_CITY_HALL_EMAIL, "ouvidoria@surubim.pe.gov.br") ?: "ouvidoria@surubim.pe.gov.br"
         )
     }
@@ -76,9 +57,6 @@ class SettingsRepository(context: Context) {
         isMotionDetectionEnabled: Boolean? = null,
         isAudioVoiceFeedbackEnabled: Boolean? = null,
         deviceId: String? = null,
-        mailtrapApiUrl: String? = null,
-        mailtrapApiToken: String? = null,
-        mailtrapSenderEmail: String? = null,
         cityHallEmail: String? = null
     ) {
         val current = _settingsFlow.value
@@ -89,9 +67,6 @@ class SettingsRepository(context: Context) {
             isMotionDetectionEnabled = isMotionDetectionEnabled ?: current.isMotionDetectionEnabled,
             isAudioVoiceFeedbackEnabled = isAudioVoiceFeedbackEnabled ?: current.isAudioVoiceFeedbackEnabled,
             deviceId = deviceId ?: current.deviceId,
-            mailtrapApiUrl = mailtrapApiUrl ?: current.mailtrapApiUrl,
-            mailtrapApiToken = mailtrapApiToken ?: current.mailtrapApiToken,
-            mailtrapSenderEmail = mailtrapSenderEmail ?: current.mailtrapSenderEmail,
             cityHallEmail = cityHallEmail ?: current.cityHallEmail
         )
 
@@ -102,9 +77,6 @@ class SettingsRepository(context: Context) {
             putBoolean(KEY_MOTION_ENABLED, updated.isMotionDetectionEnabled)
             putBoolean(KEY_AUDIO_FEEDBACK, updated.isAudioVoiceFeedbackEnabled)
             putString(KEY_DEVICE_ID, updated.deviceId)
-            putString(KEY_MAILTRAP_URL, updated.mailtrapApiUrl)
-            putString(KEY_MAILTRAP_TOKEN, updated.mailtrapApiToken)
-            putString(KEY_MAILTRAP_SENDER, updated.mailtrapSenderEmail)
             putString(KEY_CITY_HALL_EMAIL, updated.cityHallEmail)
         }.apply()
 
@@ -121,9 +93,6 @@ class SettingsRepository(context: Context) {
         private const val KEY_MOTION_ENABLED = "motion_enabled"
         private const val KEY_AUDIO_FEEDBACK = "audio_feedback"
         private const val KEY_DEVICE_ID = "device_id"
-        private const val KEY_MAILTRAP_URL = "mailtrap_api_url"
-        private const val KEY_MAILTRAP_TOKEN = "mailtrap_api_token"
-        private const val KEY_MAILTRAP_SENDER = "mailtrap_sender_email"
         private const val KEY_CITY_HALL_EMAIL = "city_hall_email"
     }
 }

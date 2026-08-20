@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only: lets the app talk plain HTTP to localhost/LAN dev servers (e.g. urbansense-api
+  running via uvicorn on a laptop, reached over adb reverse or the same Wi-Fi).
+  This file lives under src/debug/, so Gradle merges it only into debug builds — the release
+  build keeps the default HTTPS-only policy untouched.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- `<domain>` matches exact hostnames/IPs only — no CIDR ranges — so a phone hitting the
+             dev laptop over LAN needs its actual IP added here too (e.g. 192.168.1.42). -->
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

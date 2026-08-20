@@ -42,18 +42,6 @@ class SettingsViewModel(
         settingsRepository.updateSettings(isAudioVoiceFeedbackEnabled = enabled)
     }
 
-    fun updateMailtrapApiUrl(url: String) {
-        settingsRepository.updateSettings(mailtrapApiUrl = url.trim())
-    }
-
-    fun updateMailtrapApiToken(token: String) {
-        settingsRepository.updateSettings(mailtrapApiToken = token.trim())
-    }
-
-    fun updateMailtrapSenderEmail(email: String) {
-        settingsRepository.updateSettings(mailtrapSenderEmail = email.trim())
-    }
-
     fun updateCityHallEmail(email: String) {
         settingsRepository.updateSettings(cityHallEmail = email.trim())
     }

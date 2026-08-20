@@ -8,14 +8,13 @@ package com.meta.wearable.dat.externalsampleapps.cameraaccess.data.repository
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.MailtrapEmailDispatcher
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.NativeHttpDispatcher
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.ReportItem
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.ReportStatus
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.api.TriggerType
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.db.LocalReport
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.db.LocalReportStore
-import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.email.ReportEmailTemplate
+import com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.audio.AudioFeedbackManager
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.location.LocationManagerHelper
 import com.meta.wearable.dat.externalsampleapps.cameraaccess.service.location.TaggedLocation
@@ -31,6 +30,12 @@ sealed class ReportSubmissionResult {
     data class Failure(val errorMsg: String, val audioFeedback: String, val isOfflineSaved: Boolean) : ReportSubmissionResult()
 }
 
+/**
+ * Every capture goes through a single call to urbansense-api's `POST /report`: the server runs
+ * YOLO detection AND e-mails the city hall (Mailtrap) in one round trip. Nothing about the e-mail
+ * — template, token, recipient defaults — lives in this app; it only sends the photo, GPS, and
+ * (optionally) which address to notify. See urbansense-api/app/main.py and email_service.py.
+ */
 class ReportRepository(
     private val context: Context,
     private val reportStore: LocalReportStore,
@@ -59,10 +64,7 @@ class ReportRepository(
         val imageFile = saveBitmapToCache(bitmap, tempId)
 
         // 3. Prepare initial local record
-        com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
-            "UrbanSense:Repository",
-            "📸 Registro salvo localmente. ID: $tempId"
-        )
+        AppLogger.i(TAG, "📸 Registro salvo localmente. ID: $tempId")
         var localRecord = LocalReport(
             id = tempId,
             localImagePath = imageFile?.absolutePath,
@@ -89,11 +91,7 @@ class ReportRepository(
             return@withContext ReportSubmissionResult.Failure("Erro ao salvar imagem", feedback, false)
         }
 
-        // 4. Ask the AI backend (YOLO11) to classify the photo — best effort. A slow or
-        // unreachable detector must not block the citizen from notifying the city hall, so its
-        // failure is swallowed here rather than failing the whole submission.
-        var detectionResult: String? = null
-        var remoteThumbnailUrl: String? = null
+        // 4. POST /report — urbansense-api detects (YOLO) and e-mails the city hall for us.
         try {
             val (statusCode, response) = NativeHttpDispatcher.submitMultipartReport(
                 baseUrl = settings.apiUrl,
@@ -104,91 +102,65 @@ class ReportRepository(
                 accuracy = location.accuracy,
                 timestampIso = location.timestampIso,
                 triggerType = triggerType.name,
-                deviceId = settings.deviceId
-            )
-            if (statusCode in 200..299) {
-                detectionResult = response.detectionResult ?: response.data?.detectionResult
-                remoteThumbnailUrl = response.data?.thumbnailUrl
-                com.meta.wearable.dat.externalsampleapps.cameraaccess.data.logging.AppLogger.i(
-                    "UrbanSense:Repository",
-                    "✅ Detecção da IA para $tempId: $detectionResult"
-                )
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "AI detection unavailable, continuing without it", e)
-        }
-        localRecord = localRecord.copy(
-            remoteThumbnailUrl = remoteThumbnailUrl,
-            detectionResult = detectionResult ?: localRecord.detectionResult
-        )
-
-        // 5. Notify the city hall by e-mail (Mailtrap) — the citizen-facing delivery channel.
-        // This step decides the final status: QUEUED ("Enviado") only once the prefeitura has
-        // actually been notified, regardless of whether the AI detection above succeeded.
-        try {
-            val emailData = ReportEmailTemplate.ReportEmailData(
-                reportId = tempId,
-                latitude = location.latitude,
-                longitude = location.longitude,
-                accuracy = location.accuracy,
-                timestampIso = location.timestampIso,
-                triggerLabel = triggerLabelPlain(triggerType),
                 deviceId = settings.deviceId,
-                cityHallName = "Prefeitura Municipal de Surubim",
-                detectionResult = detectionResult,
+                toEmail = settings.cityHallEmail
             )
 
-            val result = MailtrapEmailDispatcher.sendReportEmail(
-                apiUrl = settings.mailtrapApiUrl,
-                apiToken = settings.mailtrapApiToken,
-                fromEmail = settings.mailtrapSenderEmail,
-                toEmail = settings.cityHallEmail,
-                subject = ReportEmailTemplate.subject(emailData),
-                htmlBody = ReportEmailTemplate.buildHtml(emailData),
-                imageFile = imageFile,
-            )
-
-            if (result.success) {
-                val audioFeedback = if (detectionResult != null) {
-                    "$detectionResult. E-mail enviado para a Prefeitura de Surubim."
-                } else {
-                    "Registro enviado por e-mail para a Prefeitura de Surubim."
-                }
+            if (statusCode in 200..299) {
+                // NOT copying id = response.data.reportId here: LocalReport.id is the SQLite
+                // primary key (see LocalReportStore). Reassigning it turns this insertOrUpdate
+                // into an INSERT of a second row instead of an UPDATE of this one, orphaning the
+                // original PENDING row forever. The server's report_id is only meaningful to
+                // urbansense-api's own logs — this app has no use for it.
+                val audioFeedback = response.audioFeedback ?: "Registro enviado com sucesso."
+                val detectionResult = response.detectionResult ?: response.data?.detectionResult
+                AppLogger.i(TAG, "✅ Ocorrência $tempId notificada. Detecção: $detectionResult")
 
                 localRecord = localRecord.copy(
+                    remoteThumbnailUrl = response.data?.thumbnailUrl,
                     status = ReportStatus.QUEUED.name,
                     audioFeedback = audioFeedback,
-                    errorMessage = null,
+                    detectionResult = detectionResult ?: localRecord.detectionResult,
+                    errorMessage = null
                 )
                 reportStore.insertOrUpdate(localRecord)
 
                 audioFeedbackManager.speakSuccess(audioFeedback, settings.isAudioVoiceFeedbackEnabled)
                 ReportSubmissionResult.Success(tempId, audioFeedback)
             } else {
-                val audioFeedback = "Falha ao enviar e-mail. Registro salvo localmente."
+                // Includes EMAIL_FAILED from the server (detection ran but Mailtrap didn't) —
+                // treated the same as any other delivery failure: kept locally, retryable.
+                val audioFeedback = response.audioFeedback ?: when (statusCode) {
+                    400 -> "Erro ao enviar. Dados de localização inválidos."
+                    401 -> "Erro de autenticação no aplicativo."
+                    422 -> "Falha na imagem capturada."
+                    500, 502 -> "Servidor indisponível. Tente novamente mais tarde."
+                    else -> "Falha no envio. Registro salvo localmente."
+                }
 
                 localRecord = localRecord.copy(
+                    detectionResult = response.detectionResult ?: localRecord.detectionResult,
                     status = ReportStatus.LOCAL_SAVED.name,
                     audioFeedback = audioFeedback,
-                    errorMessage = result.message ?: "Falha no envio do e-mail (HTTP ${result.statusCode})",
+                    errorMessage = response.message ?: "Status HTTP $statusCode"
                 )
                 reportStore.insertOrUpdate(localRecord)
 
                 audioFeedbackManager.speakFailure(audioFeedback, settings.isAudioVoiceFeedbackEnabled)
                 ReportSubmissionResult.Failure(
-                    errorMsg = result.message ?: "HTTP ${result.statusCode}",
+                    errorMsg = response.message ?: "HTTP $statusCode",
                     audioFeedback = audioFeedback,
-                    isOfflineSaved = true,
+                    isOfflineSaved = true
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error sending report e-mail", e)
+            Log.e(TAG, "Network error during report upload", e)
             val audioFeedback = "Sem conexão. Registro salvo como pendente."
 
             localRecord = localRecord.copy(
                 status = ReportStatus.PENDING.name,
                 audioFeedback = audioFeedback,
-                errorMessage = e.localizedMessage ?: "Falha na conexão com o Mailtrap"
+                errorMessage = e.localizedMessage ?: "Falha na conexão com o servidor"
             )
             reportStore.insertOrUpdate(localRecord)
 
@@ -201,9 +173,6 @@ class ReportRepository(
         }
     }
 
-    private fun triggerLabelPlain(triggerType: TriggerType): String =
-        if (triggerType == TriggerType.AUTOMATIC) "Captura automática" else "Captura manual"
-
     suspend fun retryReportSubmission(reportId: String): ReportSubmissionResult = withContext(Dispatchers.IO) {
         val localReport = reportStore.getReportById(reportId)
             ?: return@withContext ReportSubmissionResult.Failure("Registro não encontrado", "Registro não encontrado", false)
@@ -213,7 +182,7 @@ class ReportRepository(
             return@withContext ReportSubmissionResult.Failure("Arquivo da imagem não encontrado", "Imagem não encontrada localmente", false)
         }
 
-        val imageFile = java.io.File(imagePath)
+        val imageFile = File(imagePath)
         if (!imageFile.exists()) {
             return@withContext ReportSubmissionResult.Failure("Arquivo da imagem não existe", "Arquivo da imagem não existe no dispositivo", false)
         }
@@ -221,50 +190,44 @@ class ReportRepository(
         val settings = settingsRepository.getSettings()
 
         try {
-            val emailData = ReportEmailTemplate.ReportEmailData(
-                reportId = localReport.id,
+            val (statusCode, response) = NativeHttpDispatcher.submitMultipartReport(
+                baseUrl = settings.apiUrl,
+                authToken = settings.authToken,
+                imageFile = imageFile,
                 latitude = localReport.latitude,
                 longitude = localReport.longitude,
                 accuracy = localReport.accuracy,
                 timestampIso = localReport.timestamp,
-                triggerLabel = triggerLabelPlain(
-                    runCatching { TriggerType.valueOf(localReport.triggerType.orEmpty()) }
-                        .getOrDefault(TriggerType.MANUAL)
-                ),
+                triggerType = localReport.triggerType,
                 deviceId = settings.deviceId,
-                cityHallName = "Prefeitura Municipal de Surubim",
+                toEmail = settings.cityHallEmail
             )
 
-            val result = MailtrapEmailDispatcher.sendReportEmail(
-                apiUrl = settings.mailtrapApiUrl,
-                apiToken = settings.mailtrapApiToken,
-                fromEmail = settings.mailtrapSenderEmail,
-                toEmail = settings.cityHallEmail,
-                subject = ReportEmailTemplate.subject(emailData),
-                htmlBody = ReportEmailTemplate.buildHtml(emailData),
-                imageFile = imageFile,
-            )
+            if (statusCode in 200..299) {
+                // Same reasoning as submitReport: keep the existing local id so this UPDATEs the
+                // row instead of inserting an orphaned duplicate.
+                val audioFeedback = response.audioFeedback ?: "Registro reenviado com sucesso."
+                val detectionResult = response.detectionResult ?: response.data?.detectionResult
 
-            if (result.success) {
-                val audioFeedback = "Registro reenviado por e-mail com sucesso."
                 val updatedRecord = localReport.copy(
                     status = ReportStatus.QUEUED.name,
                     audioFeedback = audioFeedback,
+                    detectionResult = detectionResult ?: localReport.detectionResult,
                     errorMessage = null
                 )
                 reportStore.insertOrUpdate(updatedRecord)
                 audioFeedbackManager.speakSuccess(audioFeedback, settings.isAudioVoiceFeedbackEnabled)
                 ReportSubmissionResult.Success(localReport.id, audioFeedback)
             } else {
-                val audioFeedback = "Falha no reenvio do e-mail. Registro mantido como pendente."
+                val audioFeedback = response.audioFeedback ?: "Falha no reenvio. Registro mantido como pendente."
                 val updatedRecord = localReport.copy(
                     status = ReportStatus.PENDING.name,
                     audioFeedback = audioFeedback,
-                    errorMessage = result.message ?: "HTTP ${result.statusCode}"
+                    errorMessage = response.message ?: "HTTP $statusCode"
                 )
                 reportStore.insertOrUpdate(updatedRecord)
                 audioFeedbackManager.speakFailure(audioFeedback, settings.isAudioVoiceFeedbackEnabled)
-                ReportSubmissionResult.Failure(result.message ?: "HTTP ${result.statusCode}", audioFeedback, true)
+                ReportSubmissionResult.Failure(response.message ?: "HTTP $statusCode", audioFeedback, true)
             }
         } catch (e: Exception) {
             val audioFeedback = "Servidor indisponível. Mantido como pendente."

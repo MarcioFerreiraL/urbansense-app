@@ -27,23 +27,25 @@ object NativeHttpDispatcher {
     private const val READ_TIMEOUT_MS = 90000    // 90s timeout for YOLO11 AI inference
     private const val LINE_FEED = "\r\n"
 
-    private fun resolveTargetUrl(baseUrl: String): String {
+    /**
+     * Normalises whatever the user typed into "Base URL do Servidor" down to scheme+host+port,
+     * then appends [path] — so a stray "/v1", "/predict" or trailing slash in Settings can't send
+     * the request somewhere the backend doesn't listen.
+     */
+    private fun resolveTargetUrl(baseUrl: String, path: String): String {
         val trimmed = baseUrl.trim().trimEnd('/')
         return try {
             val url = URL(trimmed)
             val host = url.host
             val scheme = url.protocol
             val port = if (url.port != -1) ":${url.port}" else ""
-            
-            // For any domain (like urbansense-ai.marciodev.com), ensure target is directly /predict
-            "$scheme://$host$port/predict"
+            "$scheme://$host$port$path"
         } catch (e: Exception) {
             var clean = trimmed
-            if (clean.endsWith("/predict")) clean = clean.substringBeforeLast("/predict")
-            if (clean.endsWith("/detect")) clean = clean.substringBeforeLast("/detect")
-            if (clean.endsWith("/reports")) clean = clean.substringBeforeLast("/reports")
-            if (clean.endsWith("/v1")) clean = clean.substringBeforeLast("/v1")
-            "${clean.trimEnd('/')}/predict"
+            listOf("/predict", "/report", "/detect", "/reports", "/v1").forEach { suffix ->
+                if (clean.endsWith(suffix)) clean = clean.substringBeforeLast(suffix)
+            }
+            "${clean.trimEnd('/')}$path"
         }
     }
 
@@ -56,15 +58,18 @@ object NativeHttpDispatcher {
         accuracy: Double?,
         timestampIso: String,
         triggerType: String,
-        deviceId: String?
+        deviceId: String?,
+        toEmail: String?
     ): Pair<Int, ReportSubmissionResponse> = withContext(Dispatchers.IO) {
         val boundary = "===UrbanSenseBoundary${System.currentTimeMillis()}==="
-        val targetUrl = resolveTargetUrl(baseUrl)
+        // /report runs detection AND e-mails the city hall server-side (urbansense-api) — the
+        // Mailtrap token lives only there, never in this app. See urbansense-api/app/main.py.
+        val targetUrl = resolveTargetUrl(baseUrl, "/report")
         val imageSizeKb = (imageFile.length() / 1024).toInt()
 
         AppLogger.net(
             TAG,
-            "🚀 [POST /predict] Iniciando envio de foto (${imageSizeKb} KB)\n" +
+            "🚀 [POST /report] Iniciando envio de foto (${imageSizeKb} KB)\n" +
             "📍 URL: $targetUrl\n" +
             "🗺️ GPS: Lat $latitude, Lng $longitude\n" +
             "📱 DeviceId: $deviceId | Trigger: $triggerType"
@@ -102,10 +107,12 @@ object NativeHttpDispatcher {
                 if (!deviceId.isNullOrBlank()) {
                     writeFormField(outputStream, boundary, "device_id", deviceId)
                 }
+                if (!toEmail.isNullOrBlank()) {
+                    writeFormField(outputStream, boundary, "to_email", toEmail)
+                }
 
-                // 2. Binary Image File (FastAPI expects 'file', generic expects 'image')
+                // 2. Binary Image File — /report's `file: UploadFile = File(...)` parameter name.
                 writeFileField(outputStream, boundary, "file", imageFile)
-                writeFileField(outputStream, boundary, "image", imageFile)
 
                 // End of multipart
                 outputStream.writeBytes("--$boundary--$LINE_FEED")
