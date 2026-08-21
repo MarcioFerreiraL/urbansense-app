@@ -22,7 +22,7 @@ data class AppSettings(
     // Quem recebe a notificação de cada ocorrência. O envio em si (detecção + e-mail via
     // Mailtrap) roda inteiramente em urbansense-api — o app só manda a foto/GPS pra `POST
     // /report` e diz pra quem mandar; o token do Mailtrap nunca fica no cliente.
-    val cityHallEmail: String = "ouvidoria@surubim.pe.gov.br"
+    val cityHallEmail: String = "marcio.flima@upe.br"
 )
 
 class SettingsRepository(context: Context) {
@@ -39,6 +39,12 @@ class SettingsRepository(context: Context) {
             prefs.edit().putString(KEY_DEVICE_ID, devId).apply()
         }
 
+        var email = prefs.getString(KEY_CITY_HALL_EMAIL, "marcio.flima@upe.br") ?: "marcio.flima@upe.br"
+        if (email.isEmpty() || email == "ouvidoria@surubim.pe.gov.br") {
+            email = "marcio.flima@upe.br"
+            prefs.edit().putString(KEY_CITY_HALL_EMAIL, email).apply()
+        }
+
         return AppSettings(
             apiUrl = prefs.getString(KEY_API_URL, "https://urbansense-ai.marciodev.com") ?: "https://urbansense-ai.marciodev.com",
             authToken = prefs.getString(KEY_AUTH_TOKEN, "") ?: "",
@@ -46,7 +52,7 @@ class SettingsRepository(context: Context) {
             isMotionDetectionEnabled = prefs.getBoolean(KEY_MOTION_ENABLED, true),
             isAudioVoiceFeedbackEnabled = prefs.getBoolean(KEY_AUDIO_FEEDBACK, true),
             deviceId = devId,
-            cityHallEmail = prefs.getString(KEY_CITY_HALL_EMAIL, "ouvidoria@surubim.pe.gov.br") ?: "ouvidoria@surubim.pe.gov.br"
+            cityHallEmail = email
         )
     }
 
